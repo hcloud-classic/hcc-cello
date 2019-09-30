@@ -1,35 +1,35 @@
 package main
 
 import (
-	"GraphQL_Cello/cellocheckroot"
-	"GraphQL_Cello/celloconfig"
-	"GraphQL_Cello/cellographql"
-	"GraphQL_Cello/cellologger"
-	"GraphQL_Cello/cellomysql"
+	"hcc/cello/checkroot"
+	"hcc/cello/config"
+	"hcc/cello/graphql"
+	"hcc/cello/logger"
+	"hcc/cello/mysql"
 	"net/http"
 )
 
 func main() {
-	if !cellocheckroot.CheckRoot() {
+	if !checkroot.CheckRoot() {
 		return
 	}
 
-	if !cellologger.Prepare() {
+	if !logger.Prepare() {
 		return
 	}
-	defer cellologger.FpLog.Close()
+	defer logger.FpLog.Close()
 
-	err := cellomysql.Prepare()
+	err := mysql.Prepare()
 	if err != nil {
 		return
 	}
-	defer cellomysql.Db.Close()
+	defer mysql.Db.Close()
 
-	http.Handle("/graphql", cellographql.GraphqlHandler)
+	http.Handle("/graphql", graphql.GraphqlHandler)
 
-	cellologger.Logger.Println("Server is running on port " + celloconfig.HTTPPort)
-	err = http.ListenAndServe(":"+celloconfig.HTTPPort, nil)
+	logger.Logger.Println("Server is running on port " + config.HTTPPort)
+	err = http.ListenAndServe(":"+config.HTTPPort, nil)
 	if err != nil {
-		cellologger.Logger.Println("Failed to prepare http server!")
+		logger.Logger.Println("Failed to prepare http server!")
 	}
 }

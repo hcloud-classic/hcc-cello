@@ -1,4 +1,4 @@
-package cellologger
+package logger
 
 import (
 	"fmt"
