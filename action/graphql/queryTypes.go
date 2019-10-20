@@ -1,10 +1,11 @@
 package graphql
 
 import (
-	"github.com/graphql-go/graphql"
 	"hcc/cello/dao"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
+
+	"github.com/graphql-go/graphql"
 )
 
 var queryTypes = graphql.NewObject(
