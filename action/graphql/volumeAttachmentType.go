@@ -1,8 +1,8 @@
-package graphqlType
+package graphql
 
 import "github.com/graphql-go/graphql"
 
-var VolumeAttachmentType = graphql.NewObject(
+var volumeAttachmentType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "VolumeAttachment",
 		Fields: graphql.Fields{
