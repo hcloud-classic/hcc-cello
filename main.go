@@ -1,16 +1,16 @@
 package main
 
 import (
-	"hcc/cello/checkroot"
-	"hcc/cello/config"
-	"hcc/cello/graphql"
-	"hcc/cello/logger"
-	"hcc/cello/mysql"
+	"hcc/cello/action/graphql"
+	"hcc/cello/lib/config"
+	"hcc/cello/lib/logger"
+	"hcc/cello/lib/mysql"
+	"hcc/cello/lib/syscheck"
 	"net/http"
 )
 
 func main() {
-	if !checkroot.CheckRoot() {
+	if !syscheck.CheckRoot() {
 		return
 	}
 

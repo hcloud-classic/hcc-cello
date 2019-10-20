@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/graphql-go/graphql"
-	"hcc/cello/config"
-	"hcc/cello/logger"
-	"hcc/cello/mysql"
-	"hcc/cello/types"
-	"hcc/cello/uuidgen"
+	"hcc/cello/lib/config"
+	"hcc/cello/lib/logger"
+	"hcc/cello/lib/mysql"
+	"hcc/cello/lib/uuidgen"
+	"hcc/cello/model"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -75,7 +75,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 					return nil, nil
 				}
 
-				volume := types.Volume{
+				volume := model.Volume{
 					UUID:       uuid,
 					Size:       params.Args["size"].(int),
 					Type:       params.Args["type"].(string),
@@ -134,7 +134,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				_type, _typeOk := params.Args["type"].(string)
 				serverUUID, serverUUIDOk := params.Args["server_uuid"].(string)
 
-				volume := new(types.Volume)
+				volume := new(model.Volume)
 
 				if sizeOk && _typeOk && serverUUIDOk {
 					volume.UUID = requestedUUID
