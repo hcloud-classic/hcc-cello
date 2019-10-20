@@ -188,14 +188,14 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		UserUUID:   args["user_uuid"].(string),
 	}
 
-	sql := "insert into volume(uuid, subnet_uuid, os, server_name, server_desc, cpu, memory, disk_size, status, user_uuid, created_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())"
+	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid, created_at) values (?, ?, ?, ?, ?, ?, now())"
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
 	defer stmt.Close()
-	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UserUUID)
+	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID)
 	if err != nil {
 		logger.Logger.Println(err)
 		return nil, err
@@ -231,61 +231,35 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 			return nil, nil
 		}
 
-		//sql := "update server set"
-		//if subnetUUIDOk {
-		//	sql += " subnet_uuid = '" + server.SubnetUUID + "'"
-		//	if osOk || serverNameOk || serverDescOk || cpuOk || memoryOk || diskSizeOk || statusOk || userUUIDOk {
-		//		sql += ", "
-		//	}
-		//}
-		//if osOk {
-		//	sql += " os = '" + server.OS + "'"
-		//	if serverNameOk || serverDescOk || cpuOk || memoryOk || diskSizeOk || statusOk || userUUIDOk {
-		//		sql += ", "
-		//	}
-		//}
-		//if serverNameOk {
-		//	sql += " server_name = '" + server.ServerName + "'"
-		//	if serverDescOk || cpuOk || memoryOk || diskSizeOk || statusOk || userUUIDOk {
-		//		sql += ", "
-		//	}
-		//}
-		//if serverDescOk {
-		//	sql += " server_desc = '" + server.ServerDesc + "'"
-		//	if cpuOk || memoryOk || diskSizeOk || statusOk || userUUIDOk {
-		//		sql += ", "
-		//	}
-		//}
-		//if cpuOk {
-		//	sql += " cpu = " + strconv.Itoa(server.CPU)
-		//	if memoryOk || diskSizeOk || statusOk || userUUIDOk {
-		//		sql += ", "
-		//	}
-		//}
-		//if memoryOk {
-		//	sql += " memory = " + strconv.Itoa(server.Memory)
-		//	if diskSizeOk || statusOk || userUUIDOk {
-		//		sql += ", "
-		//	}
-		//}
-		//if diskSizeOk {
-		//	sql += " disk_size = " + strconv.Itoa(server.DiskSize)
-		//	if statusOk || userUUIDOk {
-		//		sql += ", "
-		//	}
-		//}
-		//if statusOk {
-		//	sql += " status = '" + server.Status + "'"
-		//	if userUUIDOk {
-		//		sql += ", "
-		//	}
-		//}
-		//if userUUIDOk {
-		//	sql += " user_uuid = " + server.UserUUID
-		//}
-		//sql += " where uuid = ?"
-
-		logger.Logger.Println("update_server sql : ", sql)
+		sql := "update volume set"
+		if sizeOk {
+			sql += " size = '" + strconv.Itoa(volume.Size) + "'"
+			if filesystemOk || serverUUIDOk || useTypeOk || userUUIDOk {
+				sql += ", "
+			}
+		}
+		if filesystemOk {
+			sql += " filesystem = '" + volume.Filesystem + "'"
+			if serverUUIDOk || useTypeOk || userUUIDOk {
+				sql += ", "
+			}
+		}
+		if serverUUIDOk {
+			sql += " server_uuid = '" + volume.ServerUUID + "'"
+			if useTypeOk || userUUIDOk {
+				sql += ", "
+			}
+		}
+		if useTypeOk {
+			sql += " use_type = '" + volume.UseType + "'"
+			if userUUIDOk {
+				sql += ", "
+			}
+		}
+		if userUUIDOk {
+			sql += " user_uuid = " + volume.UserUUID
+		}
+		sql += " where uuid = ?"
 
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
@@ -294,13 +268,13 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 		}
 		defer stmt.Close()
 
-		result, err2 := stmt.Exec(server.UUID)
+		result, err2 := stmt.Exec(volume.UUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)
 			return nil, err
 		}
 		logger.Logger.Println(result.LastInsertId())
-		return server, nil
+		return volume, nil
 	}
 
 	return nil, err
@@ -313,7 +287,7 @@ func DeleteVolume(args map[string]interface{}) (interface{}, error) {
 
 	requestedUUID, ok := args["uuid"].(string)
 	if ok {
-		sql := "delete from server where uuid = ?"
+		sql := "delete from volume where uuid = ?"
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
 			logger.Logger.Println(err.Error())
