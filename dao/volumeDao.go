@@ -227,7 +227,7 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 
 	if requestedUUIDOk {
 
-		if !sizeOk && !filesystemOk && !serverUUIDOk && !useTypeOk && !useTypeOk {
+		if !sizeOk && !filesystemOk && !serverUUIDOk && !useTypeOk {
 			return nil, nil
 		}
 
