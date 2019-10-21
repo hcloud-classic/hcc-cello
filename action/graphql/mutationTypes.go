@@ -9,6 +9,7 @@ import (
 var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Mutation",
 	Fields: graphql.Fields{
+		// volume DB
 		"create_volume": &graphql.Field{
 			Type:        volumeType,
 			Description: "Create new volume",
@@ -72,6 +73,51 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 				logger.Logger.Println("Resolving: delete_volume")
 				return dao.DeleteVolume(params.Args)
+			},
+		},
+		// volume_attachment DB
+		"create_volume_attachment": &graphql.Field{
+			Type:        volumeAttachmentType,
+			Description: "Create new volume_attachment",
+			Args: graphql.FieldConfigArgument{
+				"volume_uuid": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+				"server_uuid": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				return dao.CreateVolumeAttachment(params.Args)
+			},
+		},
+		"update_volume_attachment": &graphql.Field{
+			Type:        volumeAttachmentType,
+			Description: "Update volume",
+			Args: graphql.FieldConfigArgument{
+				"volume_uuid": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+				"server_uuid": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				logger.Logger.Println("Resolving: update_volume_attachment")
+				return dao.UpdateVolumeAttachment(params.Args)
+			},
+		},
+		"delete_volume_attachment": &graphql.Field{
+			Type:        volumeAttachmentType,
+			Description: "Delete volume_attachment by uuid",
+			Args: graphql.FieldConfigArgument{
+				"uuid": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				logger.Logger.Println("Resolving: delete_volume_attachment")
+				return dao.DeleteVolumeAttachment(params.Args)
 			},
 		},
 	},

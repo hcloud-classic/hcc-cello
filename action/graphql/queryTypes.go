@@ -11,6 +11,7 @@ var queryTypes = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "Query",
 		Fields: graphql.Fields{
+			// volume DB
 			"volume": &graphql.Field{
 				Type:        volumeType,
 				Description: "Get volume by uuid",
@@ -84,6 +85,45 @@ var queryTypes = graphql.NewObject(
 					volumeNum, err = dao.ReadVolumeNum()
 
 					return volumeNum, err
+				},
+			},
+			// volume_attachment DB
+			"volume_attachment": &graphql.Field{
+				Type:        volumeAttachmentType,
+				Description: "Get volume_attachment by uuid",
+				Args: graphql.FieldConfigArgument{
+					"uuid": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
+				},
+				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+					logger.Logger.Println("Resolving: volume_attachment")
+					return dao.ReadVolumeAttachment(params.Args)
+				},
+			},
+			"list_volume_attachment": &graphql.Field{
+				Type:        graphql.NewList(volumeAttachmentType),
+				Description: "Get volume_attachment list",
+				Args: graphql.FieldConfigArgument{
+					"volume_uuid": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
+					"server_uuid": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
+				},
+				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+					logger.Logger.Println("Resolving: list_volume_attachment")
+					return dao.ReadVolumeAttachmentList(params.Args)
+				},
+			},
+			"all_volume_attachment": &graphql.Field{
+				Type:        graphql.NewList(volumeAttachmentType),
+				Description: "Get all volume_attachment list",
+				Args:        graphql.FieldConfigArgument{},
+				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+					logger.Logger.Println("Resolving: all_volume_attachment")
+					return dao.ReadVolumeAttachmentAll(params.Args)
 				},
 			},
 		},

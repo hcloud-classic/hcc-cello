@@ -1,7 +1,7 @@
-//// volume
-
-// url
+//// url
 http://localhost:8001/graphql
+
+//// volume
 
 // create
 mutation _ {
@@ -76,4 +76,79 @@ mutation _ {
 // delete
 mutation _ {
   delete_volume(uuid:"05333605-561d-4e8c-b566-07c92d915657"){uuid}
+}
+
+//// volume_attachment
+
+// create
+mutation _ {
+  create_volume_attachment(volume_uuid:"1234", server_uuid:"1234") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+// read
+
+query {
+  volume_attachment(uuid: "05dfec6f-7fab-4535-5fd4-555b1a21acaf") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+query {
+  list_volume_attachment(volume_uuid:"1111") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+query {
+  list_volume_attachment(server_uuid:"2222") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+query {
+  all_volume_attachment {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+// update
+
+mutation _ {
+  update_volume_attachment(volume_uuid: "1111", server_uuid: "12345") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+// delete
+
+mutation _ {
+  delete_volume_attachment(uuid: "a85d4bca-8413-4954-7482-bd54b1c080c5") {
+    uuid
+  }W
 }
