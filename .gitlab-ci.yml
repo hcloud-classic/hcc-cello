@@ -8,7 +8,6 @@ before_script:
     - export GOROOT="/opt/go"
     - export GOPATH="/home/gitlab-runner/go"
     - export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
-    - gmake dep
 
 copy_dir:
     stage: init
@@ -29,15 +28,15 @@ code_coverage:
   stage: test
   script:
     - gmake coverage
-  only:
-  - master
+#  only:
+#  - master
 
 go_report:
   stage: test
   script:
     - gmake goreport
-  only:
-  - master
+#  only:
+#  - master
 
 #lint_code:
 #  stage: test
@@ -54,6 +53,5 @@ build:
     - sudo chmod 755 /usr/jails/basejail/bin/cello
     - sudo ezjail-admin start cello &
     - echo "Finished"
-  only:
-  - master
-
+#  only:
+#  - master
