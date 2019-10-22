@@ -8,8 +8,7 @@ import (
 	"time"
 )
 
-// Read
-
+// ReadVolumeAttachment - cgs
 func ReadVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	var volumeAttachment model.VolumeAttachment
 	var err error
@@ -41,6 +40,7 @@ func ReadVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	return volumeAttachment, nil
 }
 
+// ReadVolumeAttachmentList - cgs
 func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) {
 	var err error
 	var volumeAttachments []model.VolumeAttachment
@@ -79,6 +79,7 @@ func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) 
 	return volumeAttachments, nil
 }
 
+// ReadVolumeAttachmentAll - cgs
 func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
 
 	var err error
@@ -112,8 +113,7 @@ func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
 	return volumeAttachments, nil
 }
 
-// Create
-
+// CreateVolumeAttachment - cgs
 func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	uuid, err := uuidgen.Uuidgen()
 	if err != nil {
@@ -144,8 +144,7 @@ func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	return volumeAttachment, nil
 }
 
-// Update
-
+// UpdateVolumeAttachment - cgs
 func UpdateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 
 	var err error
@@ -177,8 +176,7 @@ func UpdateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	return nil, err
 }
 
-// Delete
-
+// DeleteVolumeAttachment - cgs
 func DeleteVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	var err error
 

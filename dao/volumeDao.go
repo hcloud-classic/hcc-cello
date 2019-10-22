@@ -9,8 +9,7 @@ import (
 	"time"
 )
 
-// Read
-
+// ReadVolume - cgs
 func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	var volume model.Volume
 	var err error
@@ -48,6 +47,7 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	return volume, nil
 }
 
+// ReadVolumeList - cgs
 func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	var err error
 	var volumes []model.Volume
@@ -114,6 +114,7 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	return volumes, nil
 }
 
+// ReadVolumeAll - cgs
 func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	var err error
 	var volumes []model.Volume
@@ -154,6 +155,7 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	return volumes, nil
 }
 
+// ReadVolumeNum - cgs
 func ReadVolumeNum() (model.VolumeNum, error) {
 	var volumeNum model.VolumeNum
 	var volumeNr int
@@ -170,8 +172,7 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 	return volumeNum, nil
 }
 
-// Create
-
+// CreateVolume - cgs
 func CreateVolume(args map[string]interface{}) (interface{}, error) {
 	uuid, err := uuidgen.Uuidgen()
 	if err != nil {
@@ -205,8 +206,7 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 	return volume, nil
 }
 
-// Update
-
+// UpdateVolume - cgs
 func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 	var err error
 
@@ -280,8 +280,7 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 	return nil, err
 }
 
-// Delete
-
+// DeleteVolume - cgs
 func DeleteVolume(args map[string]interface{}) (interface{}, error) {
 	var err error
 

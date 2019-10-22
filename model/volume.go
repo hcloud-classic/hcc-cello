@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// Volume - cgs
 type Volume struct {
 	UUID       string    `json:"uuid"`
 	Size       int       `json:"size"`
@@ -12,10 +13,12 @@ type Volume struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+// Volumes - cgs
 type Volumes struct {
 	Volumes []Volume `json:"volume"`
 }
 
+// VolumeNum - cgs
 type VolumeNum struct {
 	Number int `json:"number"`
 }
