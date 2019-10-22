@@ -8,7 +8,6 @@ before_script:
     - export GOROOT="/opt/go"
     - export GOPATH="/home/gitlab-runner/go"
     - export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
-    - gmake dep
 
 copy_dir:
     stage: init
@@ -29,29 +28,30 @@ code_coverage:
   stage: test
   script:
     - gmake coverage
-  only:
-  - master
+#  only:
+#  - master
 
 go_report:
   stage: test
   script:
     - gmake goreport
-  only:
-  - master
+#  only:
+#  - master
 
-lint_code:
-  stage: test
-  script:
-    - gmake lint_dep
-    - gmake lint
+#lint_code:
+#  stage: test
+#  script:
+#    - gmake lint_dep
+#    - gmake lint
 
 build:
   stage: build
   script:
     - gmake
-    - if pgrep GraphQL_Cello; then killall GraphQL_Cello; fi
-    - nohup sudo $PWD/GraphQL_Cello &
+    - sudo ezjail-admin stop cello
+    - sudo cp $PWD/cello /usr/jails/basejail/bin/
+    - sudo chmod 755 /usr/jails/basejail/bin/cello
+    - sudo ezjail-admin start cello &
     - echo "Finished"
-  only:
-  - master
-
+#  only:
+#  - master
