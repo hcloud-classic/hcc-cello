@@ -12,10 +12,19 @@ var volumeType = graphql.NewObject(
 			"size": &graphql.Field{
 				Type: graphql.Int,
 			},
-			"type": &graphql.Field{
+			"filesystem": &graphql.Field{
 				Type: graphql.String,
 			},
 			"server_uuid": &graphql.Field{
+				Type: graphql.String,
+			},
+			"use_type": &graphql.Field{
+				Type: graphql.String,
+			},
+			"user_uuid": &graphql.Field{
+				Type: graphql.String,
+			},
+			"created_at": &graphql.Field{
 				Type: graphql.String,
 			},
 		},
