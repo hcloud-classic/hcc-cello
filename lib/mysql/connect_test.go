@@ -1,13 +1,13 @@
 package mysql
 
 import (
-	"hcc/cello/checkroot"
-	"hcc/cello/logger"
+	"hcc/cello/lib/logger"
+	"hcc/cello/lib/syscheck"
 	"testing"
 )
 
 func Test_DB_Prepare(t *testing.T) {
-	if !checkroot.CheckRoot() {
+	if !syscheck.CheckRoot() {
 		t.Fatal("Failed to get root permission!")
 	}
 

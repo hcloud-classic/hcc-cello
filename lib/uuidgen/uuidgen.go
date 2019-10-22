@@ -2,7 +2,7 @@ package uuidgen
 
 import (
 	"github.com/nu7hatch/gouuid"
-	"hcc/cello/logger"
+	"hcc/cello/lib/logger"
 )
 
 // Uuidgen : Generate uuid
