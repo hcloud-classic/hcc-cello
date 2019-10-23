@@ -69,7 +69,7 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	sql := "select * from volume where"
+	sql := "select * from volume where 1 = 1 and "
 	if sizeOk {
 		sql += " size = '" + strconv.Itoa(size) + "'"
 		if filesystemOk || serverUUIDOk || useTypeOk {
@@ -174,7 +174,7 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 
 // CreateVolume - cgs
 func CreateVolume(args map[string]interface{}) (interface{}, error) {
-	uuid, err := uuidgen.Uuidgen()
+	uuid, err := uuidgen.UUIDgen()
 	if err != nil {
 		logger.Logger.Println("Failed to generate uuid!")
 		return nil, err
@@ -195,7 +195,9 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID)
 	if err != nil {
 		logger.Logger.Println(err)
@@ -266,7 +268,9 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 			logger.Logger.Println(err.Error())
 			return nil, err
 		}
-		defer stmt.Close()
+		defer func() {
+			_ = stmt.Close()
+		}()
 
 		result, err2 := stmt.Exec(volume.UUID)
 		if err2 != nil {
@@ -292,7 +296,9 @@ func DeleteVolume(args map[string]interface{}) (interface{}, error) {
 			logger.Logger.Println(err.Error())
 			return nil, err
 		}
-		defer stmt.Close()
+		defer func() {
+			_ = stmt.Close()
+		}()
 		result, err2 := stmt.Exec(requestedUUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)

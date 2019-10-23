@@ -51,7 +51,7 @@ func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) 
 	volumeUUID, volumeUUIDOk := args["volume_uuid"].(string)
 	serverUUID, serverUUIDOk := args["server_uuid"].(string)
 
-	sql := "select * from volume_attachment where"
+	sql := "select * from volume_attachment where 1 = 1 and "
 	if volumeUUIDOk {
 		sql += " volume_uuid = '" + volumeUUID + "' order by created_at desc"
 	} else if serverUUIDOk {
@@ -65,7 +65,9 @@ func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) 
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	for stmt.Next() {
 		err := stmt.Scan(&uuid, &volumeUUID, &serverUUID, &createdAt, &updatedAt)
@@ -97,7 +99,9 @@ func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	for stmt.Next() {
 		err := stmt.Scan(&uuid, &volumeUUID, &serverUUID, &createdAt, &updatedAt)
@@ -115,7 +119,7 @@ func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
 
 // CreateVolumeAttachment - cgs
 func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
-	uuid, err := uuidgen.Uuidgen()
+	uuid, err := uuidgen.UUIDgen()
 	if err != nil {
 		logger.Logger.Println("Failed to generate uuid!")
 		return nil, err
@@ -133,7 +137,9 @@ func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 	result, err := stmt.Exec(volumeAttachment.UUID, volumeAttachment.VolumeUUID, volumeAttachment.ServerUUID)
 	if err != nil {
 		logger.Logger.Println(err)
@@ -161,7 +167,9 @@ func UpdateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 			logger.Logger.Println(err.Error())
 			return nil, err
 		}
-		defer stmt.Close()
+		defer func() {
+			_ = stmt.Close()
+		}()
 
 		result, err2 := stmt.Exec(volumeUUID)
 		if err2 != nil {
@@ -188,7 +196,9 @@ func DeleteVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 			logger.Logger.Println(err.Error())
 			return nil, err
 		}
-		defer stmt.Close()
+		defer func() {
+			_ = stmt.Close()
+		}()
 		result, err2 := stmt.Exec(requestedUUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)

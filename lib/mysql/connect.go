@@ -2,9 +2,10 @@ package mysql
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql" // Needed for connect mysql
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
+
+	_ "github.com/go-sql-driver/mysql" // Needed for connect mysql
 )
 
 // Db : Pointer of mysql connection
