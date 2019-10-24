@@ -98,7 +98,7 @@ func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	cmd := exec.Command("cp", "-r", src, dst)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, errors.New("Pxe Config can't write" + string(result))
+		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
 	}
 	return true, result
 }
