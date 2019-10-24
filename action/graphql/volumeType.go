@@ -18,6 +18,9 @@ var volumeType = graphql.NewObject(
 			"server_uuid": &graphql.Field{
 				Type: graphql.String,
 			},
+			"network_ip": &graphql.Field{
+				Type: graphql.String,
+			},
 			"use_type": &graphql.Field{
 				Type: graphql.String,
 			},
