@@ -1,9 +1,13 @@
 package graphql
 
 import (
-	"github.com/graphql-go/graphql"
+	"errors"
+	"fmt"
 	"hcc/cello/dao"
+	"hcc/cello/lib/handler"
 	"hcc/cello/lib/logger"
+
+	"github.com/graphql-go/graphql"
 )
 
 var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
@@ -23,6 +27,9 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				"server_uuid": &graphql.ArgumentConfig{
 					Type: graphql.String,
 				},
+				"network_ip": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
 				"use_type": &graphql.ArgumentConfig{
 					Type: graphql.String,
 				},
@@ -31,7 +38,22 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				return dao.CreateVolume(params.Args)
+				actionstatus, err := handler.PreparePxeSetting(params.Args["server_uuid"].(string), params.Args["use_type"].(string), params.Args["network_ip"].(string))
+				if actionstatus {
+					createstatus, err := handler.CreateVolume(params.Args["filesystem"].(string), params.Args["server_uuid"].(string), params.Args["use_type"].(string), params.Args["size"].(int))
+					if !createstatus {
+						volume, err := dao.CreateVolume(params.Args)
+						test := params.Args["network_ip"].(string)
+						fmt.Println(test)
+						return volume, err
+					}
+					strerr := "create_volume action status=> " + fmt.Sprintln(err)
+					return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
+				} else {
+					strerr := "create_volume action status=> " + fmt.Sprintln(err)
+
+					return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
+				}
 			},
 		},
 		"update_volume": &graphql.Field{
