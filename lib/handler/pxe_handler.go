@@ -96,10 +96,10 @@ func writeFile(fileLocation string, input string) error {
 }
 func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	command := "cp -r " + src + " " + dst
-	cmd := exec.Command("/bin/sh", "-c", command)
+	cmd := exec.Command("/bin/bash", "-c", command)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
+		return false, errors.New("Pxe Config can't  " + string(result) + "=>  " + src + "  =>  " + dst)
 	}
 	return true, result
 }
