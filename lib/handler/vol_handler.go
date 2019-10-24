@@ -38,10 +38,10 @@ func CreateVolume(FileSystem string, ServerUUID string, OS string, Size int) (bo
 }
 
 func createzfs(FileSystem string, ServerUUID string, OS string) (bool, interface{}) {
-	mountpath := "mountpoint=" + defaultdir + "/" + ServerUUID
 	volname := FileSystem + OS + "-vol-" + ServerUUID
+	mountpath := "mountpoint=" + defaultdir + "/" + ServerUUID + "/"
 	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
-	cmd := exec.Command("zfs", "create", "-o", "mountpoint", mountpath, zsysteminfo.ZfsName)
+	cmd := exec.Command("zfs", "create", "-o", mountpath, zsysteminfo.ZfsName)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, err
@@ -65,7 +65,7 @@ func setquota(ServerUUID string, Size int) (bool, interface{}) {
 func hostCheck() {
 	cmd := exec.Command("hostname")
 	result, err := cmd.CombinedOutput()
-	zsysteminfo.PoolName = string(result)
+	zsysteminfo.PoolName = strings.TrimSpace(string(result))
 	if err != nil {
 		fmt.Println(result, err)
 	}
