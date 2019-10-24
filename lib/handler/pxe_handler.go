@@ -115,7 +115,7 @@ func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	tmpstr := "cp -R " + src + " " + dst
 	cmd := exec.Command("/bin/bash", "-c", tmpstr)
 	// cmd := exec.Command("cp", "-R", src, dst)
-	cmd := exec.Command("cp", "-R", "/root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
+	// cmd := exec.Command("cp", "-R", "/root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
