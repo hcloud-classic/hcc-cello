@@ -48,10 +48,10 @@ build:
   stage: build
   script:
     - gmake
-    - sudo ezjail-admin stop cello
-    - sudo cp $PWD/cello /usr/jails/basejail/bin/
-    - sudo chmod 755 /usr/jails/basejail/bin/cello
-    - sudo ezjail-admin start cello &
+    - sudo /usr/sbin/service cello stop
+    - sudo cp $PWD/cello /bin/cello
+    - sudo chmod 755 /bin/cello
+    - sudo /usr/sbin/service cello start
     - echo "Finished"
 #  only:
 #  - master
