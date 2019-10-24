@@ -39,7 +39,8 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	// 	return false, errors.New("RebuildPxeSetting Failed")
 	// }
 	// return true, "Complete Pxe Setting"
-	return CreateDir(ServerUUID), "qwe"
+	CreateDir(ServerUUID)
+	return true, "qwe"
 }
 func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 	leaderpxecfg := grubdefault + leaderoption + commonoption
@@ -106,6 +107,7 @@ func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	return true, result
 }
 
+//CreateDir : test
 func CreateDir(ServerUUID string) bool {
 	var err error
 	returnValue := false
