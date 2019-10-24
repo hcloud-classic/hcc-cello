@@ -187,6 +187,7 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		ServerUUID: args["server_uuid"].(string),
 		UseType:    args["use_type"].(string),
 		UserUUID:   args["user_uuid"].(string),
+		NetworkIP:  args["network_ip"].(string),
 	}
 
 	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid, created_at) values (?, ?, ?, ?, ?, ?, now())"
