@@ -113,8 +113,8 @@ func CreateDir(ServerUUID string) bool {
 	returnValue := false
 	once.Do(func() {
 		// Create directory if not exist
-		if _, err = os.Stat(defaultdir + "/" + ServerUUID); os.IsNotExist(err) {
-			err = CreateDirIfNotExist(defaultdir + "/" + ServerUUID)
+		if _, err = os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
+			err = CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
 			logger.Logger.Println(err)
 			if err != nil {
 				logger.Logger.Println(err)
