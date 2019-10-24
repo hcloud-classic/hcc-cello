@@ -1,9 +1,6 @@
 package dao
 
 import (
-	"errors"
-	"fmt"
-	"hcc/cello/lib/handler"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
 	"hcc/cello/lib/uuidgen"
@@ -182,19 +179,7 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println("Failed to generate uuid!")
 		return nil, err
 	}
-	actionstatus, testerr := handler.PreparePxeSetting(args["server_uuid"].(string), args["use_type"].(string), args["network_ip"].(string))
-	if actionstatus {
-		createstatus, testerr := handler.CreateVolume(args["filesystem"].(string), args["server_uuid"].(string), args["use_type"].(string), args["size"].(int))
-		if !createstatus {
-			strerr := "create_volume action status=> " + fmt.Sprintln(testerr)
-			return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
-		}
 
-	} else {
-		strerr := "create_volume action status=> " + fmt.Sprintln(testerr)
-
-		return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
-	}
 	volume := model.Volume{
 		UUID:       uuid,
 		Size:       args["size"].(int),

@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// ZSystem : Struct of ZSystem
 type ZSystem struct {
 	PoolName     string
 	PoolCapacity string
@@ -15,7 +16,7 @@ type ZSystem struct {
 
 var zsysteminfo ZSystem
 
-//CreateVolume : Creatte Volume
+// CreateVolume : Creatte Volume
 func CreateVolume(FileSystem string, ServerUUID string, OS string, Size int) (bool, interface{}) {
 	// check hostname =>  because zpool follow hostname
 	//
@@ -89,12 +90,14 @@ func QuotaCheck(ServerUUID string) (bool, interface{}) {
 	return true, tmpstr[posofvalue]
 }
 
-// To-Do : Implement delete volume
+// DeleteVolume :
+// TODO : Implement delete volume
 func DeleteVolume() {
 
 }
 
-// To-Do : Implement update volume
+// UpdateVolume :
+// TODO : Implement update volume
 func UpdateVolume() {
 
 }
