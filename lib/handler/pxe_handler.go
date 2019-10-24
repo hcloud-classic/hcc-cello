@@ -39,7 +39,11 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	// 	return false, errors.New("RebuildPxeSetting Failed")
 	// }
 	// return true, "Complete Pxe Setting"
-	CreateDir(ServerUUID)
+	err := logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
+	logger.Logger.Println(err)
+	if err != nil {
+		return false, "xxxx"
+	}
 	return true, "qwe"
 }
 func rebuildPxeSetting(pxeDir string, networkIP string) bool {
@@ -107,41 +111,23 @@ func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	return true, result
 }
 
-//CreateDir : test
-func CreateDir(ServerUUID string) bool {
-	var err error
-	returnValue := false
-	once.Do(func() {
-		// Create directory if not exist
-		if _, err = os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
-			err = CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
-			logger.Logger.Println(err)
-			if err != nil {
-				logger.Logger.Println(err)
+// //CreateDir : test
+// func CreateDir(ServerUUID string) bool {
+// 	var err error
+// 	returnValue := false
+// 	once.Do(func() {
+// 		// Create directory if not exist
+// 		if _, err = os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
+// 			err = logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
+// 			logger.Logger.Println(err)
+// 			if err != nil {
+// 				logger.Logger.Println(err)
 
-				panic(err)
-			}
-		}
-		returnValue = true
-	})
+// 				panic(err)
+// 			}
+// 		}
+// 		returnValue = true
+// 	})
 
-	return returnValue
-}
-
-// CreateDirIfNotExist : Make directory if not exist
-func CreateDirIfNotExist(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		logger.Logger.Println(err)
-
-		err = os.MkdirAll(dir, 0755)
-		logger.Logger.Println(err)
-
-		if err != nil {
-			logger.Logger.Println(err)
-
-			return err
-		}
-	}
-
-	return nil
-}
+// 	return returnValue
+// }
