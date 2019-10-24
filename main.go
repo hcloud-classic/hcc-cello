@@ -31,7 +31,11 @@ func main() {
 	defer func() {
 		_ = mysql.Db.Close()
 	}()
-
+	// err = logger.CreateDirIfNotExist("/root/boottp/HCC/" + "XXXXXXXXX")
+	// logger.Logger.Println(err)
+	// if err != nil {
+	// 	return
+	// }
 	http.Handle("/graphql", graphql.Handler)
 
 	logger.Logger.Println("Server is running on port " + strconv.Itoa(int(config.HTTP.Port)))

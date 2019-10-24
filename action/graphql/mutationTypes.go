@@ -38,20 +38,13 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				actionstatus, err := handler.PreparePxeSetting(params.Args["server_uuid"].(string), params.Args["use_type"].(string), params.Args["network_ip"].(string))
-				if actionstatus {
-					createstatus, err := handler.CreateVolume(params.Args["filesystem"].(string), params.Args["server_uuid"].(string), params.Args["use_type"].(string), params.Args["size"].(int))
-					if createstatus {
-						volume, err := dao.CreateVolume(params.Args)
-						test := params.Args["network_ip"].(string)
-						fmt.Println(test)
-						return volume, err
-					}
+				result, err := handler.ActionHandle(params.Args)
+				if result {
+					return dao.CreateVolume(params.Args)
+				} else {
 					strerr := "create_volume action status=> " + fmt.Sprintln(err)
 					return nil, errors.New("[Cello]Can't Create Volume in true: " + strerr)
 				}
-				strerr := "create_volume action status=> " + fmt.Sprintln(err)
-				return nil, errors.New("[Cello]Can't Create Volume in false: " + strerr)
 			},
 		},
 		"update_volume": &graphql.Field{
