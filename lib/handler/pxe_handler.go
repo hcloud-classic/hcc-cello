@@ -115,7 +115,10 @@ func CreateDir(ServerUUID string) bool {
 		// Create directory if not exist
 		if _, err = os.Stat(defaultdir + "/" + ServerUUID); os.IsNotExist(err) {
 			err = CreateDirIfNotExist(defaultdir + "/" + ServerUUID)
+			logger.Logger.Println(err)
 			if err != nil {
+				logger.Logger.Println(err)
+
 				panic(err)
 			}
 		}
@@ -128,8 +131,14 @@ func CreateDir(ServerUUID string) bool {
 // CreateDirIfNotExist : Make directory if not exist
 func CreateDirIfNotExist(dir string) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		logger.Logger.Println(err)
+
 		err = os.MkdirAll(dir, 0755)
+		logger.Logger.Println(err)
+
 		if err != nil {
+			logger.Logger.Println(err)
+
 			return err
 		}
 	}
