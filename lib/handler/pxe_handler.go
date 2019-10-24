@@ -17,11 +17,11 @@ var serverPxeDefaultDir string
 // create pxe
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, interface{}) {
 
-	// err := logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
-	// logger.Logger.Println(err)
-	// if err != nil {
-	// 	return false, "xxxx"
-	// }
+	err := logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
+	logger.Logger.Println(err)
+	if err != nil {
+		return false, "xxxx"
+	}
 	// if _, err := os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
 	// 	err = os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
 	// 	if err != nil {
@@ -38,24 +38,24 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 
 	// }
 
-	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
-	if !copyresult {
-		fmt.Println(test)
-		str := fmt.Sprintf("%v", test)
-		return false, errors.New("Leader Pxe Setting Failed : " + str)
-	}
-	copyresult, test = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
-	if !copyresult {
-		fmt.Println(test)
-		str := fmt.Sprintf("%v", test)
-		return false, errors.New("Leader Pxe Setting Failed : " + str)
+	// copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
+	// if !copyresult {
+	// 	fmt.Println(test)
+	// 	str := fmt.Sprintf("%v", test)
+	// 	return false, errors.New("Leader Pxe Setting Failed : " + str)
+	// }
+	// copyresult, test = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
+	// if !copyresult {
+	// 	fmt.Println(test)
+	// 	str := fmt.Sprintf("%v", test)
+	// 	return false, errors.New("Leader Pxe Setting Failed : " + str)
 
-	}
-	serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
-	fmt.Println("serverPxeDefaultDir=> ", serverPxeDefaultDir)
-	if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
-		return false, errors.New("RebuildPxeSetting Failed")
-	}
+	// }
+	// serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
+	// fmt.Println("serverPxeDefaultDir=> ", serverPxeDefaultDir)
+	// if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
+	// 	return false, errors.New("RebuildPxeSetting Failed")
+	// }
 
 	return true, "Complete Pxe Setting"
 
