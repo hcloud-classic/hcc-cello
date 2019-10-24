@@ -17,34 +17,31 @@ var serverPxeDefaultDir string
 // create pxe
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, interface{}) {
 
-	// if !createdir(ServerUUID) {
-	// 	fmt.Println("Error")
-	// }
-	// copyresult, err := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
-	// if !copyresult {
-	// 	fmt.Println(err)
-	// 	str := fmt.Sprintf("%v", err)
-	// 	return false, errors.New("Leader Pxe Setting Failed : " + str)
-	// }
-	// copyresult, err = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
-	// if !copyresult {
-	// 	fmt.Println(err)
-	// 	str := fmt.Sprintf("%v", err)
-	// 	return false, errors.New("Leader Pxe Setting Failed : " + str)
-
-	// }
-	// serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
-	// fmt.Println("serverPxeDefaultDir=> ", serverPxeDefaultDir)
-	// if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
-	// 	return false, errors.New("RebuildPxeSetting Failed")
-	// }
-	// return true, "Complete Pxe Setting"
 	err := logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
 	logger.Logger.Println(err)
 	if err != nil {
-		return false, "xxxx"
+		return false, err
 	}
-	return true, "qwe"
+
+	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
+	if !copyresult {
+		fmt.Println(test)
+		str := fmt.Sprintf("%v", test)
+		return false, errors.New("Leader Pxe Setting Failed : " + str)
+	}
+	copyresult, test = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
+	if !copyresult {
+		fmt.Println(test)
+		str := fmt.Sprintf("%v", test)
+		return false, errors.New("Leader Pxe Setting Failed : " + str)
+
+	}
+	serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
+	fmt.Println("serverPxeDefaultDir=> ", serverPxeDefaultDir)
+	if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
+		return false, errors.New("RebuildPxeSetting Failed")
+	}
+	return true, "Complete Pxe Setting"
 }
 func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 	leaderpxecfg := grubdefault + leaderoption + commonoption
