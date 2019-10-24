@@ -1,6 +1,9 @@
 package dao
 
 import (
+	"errors"
+	"fmt"
+	"hcc/cello/lib/handler"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
 	"hcc/cello/lib/uuidgen"
@@ -179,7 +182,19 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println("Failed to generate uuid!")
 		return nil, err
 	}
+	actionstatus, testerr := handler.PreparePxeSetting(args["server_uuid"].(string), args["use_type"].(string), args["network_ip"].(string))
+	if actionstatus {
+		createstatus, testerr := handler.CreateVolume(args["filesystem"].(string), args["server_uuid"].(string), args["use_type"].(string), args["size"].(int))
+		if !createstatus {
+			strerr := "create_volume action status=> " + fmt.Sprintln(testerr)
+			return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
+		}
 
+	} else {
+		strerr := "create_volume action status=> " + fmt.Sprintln(testerr)
+
+		return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
+	}
 	volume := model.Volume{
 		UUID:       uuid,
 		Size:       args["size"].(int),
@@ -187,6 +202,7 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		ServerUUID: args["server_uuid"].(string),
 		UseType:    args["use_type"].(string),
 		UserUUID:   args["user_uuid"].(string),
+		NetworkIP:  args["network_ip"].(string),
 	}
 
 	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid, created_at) values (?, ?, ?, ?, ?, ?, now())"

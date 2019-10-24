@@ -5,13 +5,14 @@ import (
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
+	"hcc/cello/lib/syscheck"
 	"net/http"
 )
 
 func main() {
-	// if !syscheck.CheckRoot() {
-	// 	return
-	// }
+	if !syscheck.CheckRoot() {
+		return
+	}
 
 	if !logger.Prepare() {
 		return

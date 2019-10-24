@@ -16,19 +16,38 @@ var serverPxeDefaultDir string
 //PreparePxeSetting : Prepare Pxe Setting, that pxelinux.cfg/default context update
 // create pxe
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, interface{}) {
-	if !createdir(ServerUUID) {
-		fmt.Println("Error")
-	}
-	copyresult, err := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
+
+	// err := logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
+	// logger.Logger.Println(err)
+	// if err != nil {
+	// 	return false, "xxxx"
+	// }
+	// if _, err := os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
+	// 	err = os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
+	// 	if err != nil {
+	// 		return false, err
+	// 	}
+	// }
+	// _, err := os.Stat("/root/boottp/HCC/" + ServerUUID)
+
+	// if os.IsNotExist(err) {
+	// 	errDir := os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
+	// 	if errDir != nil {
+	// 		log.Fatal(err)
+	// 	}
+
+	// }
+
+	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
 	if !copyresult {
-		fmt.Println(err)
-		str := fmt.Sprintf("%v", err)
+		fmt.Println(test)
+		str := fmt.Sprintf("%v", test)
 		return false, errors.New("Leader Pxe Setting Failed : " + str)
 	}
-	copyresult, err = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
+	copyresult, test = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
 	if !copyresult {
-		fmt.Println(err)
-		str := fmt.Sprintf("%v", err)
+		fmt.Println(test)
+		str := fmt.Sprintf("%v", test)
 		return false, errors.New("Leader Pxe Setting Failed : " + str)
 
 	}
@@ -37,7 +56,9 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
 		return false, errors.New("RebuildPxeSetting Failed")
 	}
+
 	return true, "Complete Pxe Setting"
+
 }
 func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 	leaderpxecfg := grubdefault + leaderoption + commonoption
@@ -95,39 +116,34 @@ func writeFile(fileLocation string, input string) error {
 	return nil
 }
 func copydefaultsetting(src string, dst string) (bool, interface{}) {
-	cmd := exec.Command("cp", "-r", src, dst)
+	qwe := "cp -R /root/boottp/HCC /root/boottp/HCC/XXXXXX"
+	cmd := exec.Command("/bin/bash", "-c", qwe)
+	// cmd := exec.Command("cp", "-R", src, dst)
+	// cmd := exec.Command("cp", "-R", "root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, errors.New("Pxe Config can't write" + string(result))
+		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
 	}
 	return true, result
 }
 
-func createdir(ServerUUID string) bool {
-	var err error
-	returnValue := false
-	once.Do(func() {
-		// Create directory if not exist
-		if _, err = os.Stat(defaultdir + "/" + ServerUUID); os.IsNotExist(err) {
-			err = CreateDirIfNotExist(defaultdir + "/" + ServerUUID)
-			if err != nil {
-				panic(err)
-			}
-		}
-		returnValue = true
-	})
+// //CreateDir : test
+// func CreateDir(ServerUUID string) bool {
+// 	var err error
+// 	returnValue := false
+// 	once.Do(func() {
+// 		// Create directory if not exist
+// 		if _, err = os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
+// 			err = logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
+// 			logger.Logger.Println(err)
+// 			if err != nil {
+// 				logger.Logger.Println(err)
 
-	return returnValue
-}
+// 				panic(err)
+// 			}
+// 		}
+// 		returnValue = true
+// 	})
 
-// CreateDirIfNotExist : Make directory if not exist
-func CreateDirIfNotExist(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err = os.MkdirAll(dir, 0755)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+// 	return returnValue
+// }
