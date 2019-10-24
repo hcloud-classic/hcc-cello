@@ -41,7 +41,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				actionstatus, err := handler.PreparePxeSetting(params.Args["server_uuid"].(string), params.Args["use_type"].(string), params.Args["network_ip"].(string))
 				if actionstatus {
 					createstatus, err := handler.CreateVolume(params.Args["filesystem"].(string), params.Args["server_uuid"].(string), params.Args["use_type"].(string), params.Args["size"].(int))
-					if !createstatus {
+					if createstatus {
 						volume, err := dao.CreateVolume(params.Args)
 						test := params.Args["network_ip"].(string)
 						fmt.Println(test)
