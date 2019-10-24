@@ -16,28 +16,30 @@ var serverPxeDefaultDir string
 //PreparePxeSetting : Prepare Pxe Setting, that pxelinux.cfg/default context update
 // create pxe
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, interface{}) {
-	if !createdir(ServerUUID) {
-		fmt.Println("Error")
-	}
-	copyresult, err := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
-	if !copyresult {
-		fmt.Println(err)
-		str := fmt.Sprintf("%v", err)
-		return false, errors.New("Leader Pxe Setting Failed : " + str)
-	}
-	copyresult, err = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
-	if !copyresult {
-		fmt.Println(err)
-		str := fmt.Sprintf("%v", err)
-		return false, errors.New("Leader Pxe Setting Failed : " + str)
 
-	}
-	serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
-	fmt.Println("serverPxeDefaultDir=> ", serverPxeDefaultDir)
-	if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
-		return false, errors.New("RebuildPxeSetting Failed")
-	}
-	return true, "Complete Pxe Setting"
+	// if !createdir(ServerUUID) {
+	// 	fmt.Println("Error")
+	// }
+	// copyresult, err := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
+	// if !copyresult {
+	// 	fmt.Println(err)
+	// 	str := fmt.Sprintf("%v", err)
+	// 	return false, errors.New("Leader Pxe Setting Failed : " + str)
+	// }
+	// copyresult, err = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
+	// if !copyresult {
+	// 	fmt.Println(err)
+	// 	str := fmt.Sprintf("%v", err)
+	// 	return false, errors.New("Leader Pxe Setting Failed : " + str)
+
+	// }
+	// serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
+	// fmt.Println("serverPxeDefaultDir=> ", serverPxeDefaultDir)
+	// if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
+	// 	return false, errors.New("RebuildPxeSetting Failed")
+	// }
+	// return true, "Complete Pxe Setting"
+	return createdir(ServerUUID), "qwe"
 }
 func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 	leaderpxecfg := grubdefault + leaderoption + commonoption
@@ -95,11 +97,11 @@ func writeFile(fileLocation string, input string) error {
 	return nil
 }
 func copydefaultsetting(src string, dst string) (bool, interface{}) {
-	command := "cp -r " + src + " " + dst
-	cmd := exec.Command("/bin/bash", "-c", "\""+command+"\"")
+
+	cmd := exec.Command("cp", "-r", src, dst)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, errors.New("Pxe Config can't  " + string(result) + "=>  " + src + "  =>  " + dst)
+		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
 	}
 	return true, result
 }
