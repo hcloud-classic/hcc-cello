@@ -29,14 +29,10 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	// 		return false, err
 	// 	}
 	// }
-	_, err := os.Stat("/root/boottp/HCC/" + ServerUUID)
 
-	if os.IsNotExist(err) {
-		errDir := os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
-		if errDir != nil {
-			log.Fatal(err)
-		}
-
+	err := logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
@@ -119,7 +115,7 @@ func writeFile(fileLocation string, input string) error {
 func copydefaultsetting(src string, dst string) (bool, interface{}) {
 
 	// cmd := exec.Command("cp", "-R", src, dst)
-	cmd := exec.Command("cp", "-R", "root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
+	cmd := exec.Command("/bin/cp", "-R", "root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
