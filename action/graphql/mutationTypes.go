@@ -48,11 +48,10 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 						return volume, err
 					}
 					strerr := "create_volume action status=> " + fmt.Sprintln(err)
-					return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
+					return nil, errors.New("[Cello]Can't Create Volume in true: " + strerr)
 				} else {
 					strerr := "create_volume action status=> " + fmt.Sprintln(err)
-
-					return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
+					return nil, errors.New("[Cello]Can't Create Volume in false: " + strerr)
 				}
 			},
 		},

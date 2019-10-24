@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hcc/cello/lib/logger"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,10 +18,25 @@ var serverPxeDefaultDir string
 // create pxe
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, interface{}) {
 
-	err := logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
-	logger.Logger.Println(err)
-	if err != nil {
-		return false, err
+	// err := logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
+	// logger.Logger.Println(err)
+	// if err != nil {
+	// 	return false, "xxxx"
+	// }
+	// if _, err := os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
+	// 	err = os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
+	// 	if err != nil {
+	// 		return false, err
+	// 	}
+	// }
+	_, err := os.Stat("/root/boottp/HCC/" + ServerUUID)
+
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
+		if errDir != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
@@ -41,7 +57,9 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
 		return false, errors.New("RebuildPxeSetting Failed")
 	}
+
 	return true, "Complete Pxe Setting"
+
 }
 func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 	leaderpxecfg := grubdefault + leaderoption + commonoption
@@ -100,7 +118,8 @@ func writeFile(fileLocation string, input string) error {
 }
 func copydefaultsetting(src string, dst string) (bool, interface{}) {
 
-	cmd := exec.Command("cp", "-r", src, dst)
+	// cmd := exec.Command("cp", "-R", src, dst)
+	cmd := exec.Command("cp", "-R", "root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
