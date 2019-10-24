@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"hcc/cello/lib/logger"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -29,15 +28,15 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	// 		return false, err
 	// 	}
 	// }
-	_, err := os.Stat("/root/boottp/HCC/" + ServerUUID)
+	// _, err := os.Stat("/root/boottp/HCC/" + ServerUUID)
 
-	if os.IsNotExist(err) {
-		errDir := os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
-		if errDir != nil {
-			log.Fatal(err)
-		}
+	// if os.IsNotExist(err) {
+	// 	errDir := os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
+	// 	if errDir != nil {
+	// 		log.Fatal(err)
+	// 	}
 
-	}
+	// }
 
 	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
 	if !copyresult {
@@ -117,9 +116,10 @@ func writeFile(fileLocation string, input string) error {
 	return nil
 }
 func copydefaultsetting(src string, dst string) (bool, interface{}) {
-
+	qwe := "cp -R /root/boottp/HCC /root/boottp/HCC/XXXXXX"
+	cmd := exec.Command("/bin/bash", "-c", qwe)
 	// cmd := exec.Command("cp", "-R", src, dst)
-	cmd := exec.Command("cp", "-R", "root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
+	// cmd := exec.Command("cp", "-R", "root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
