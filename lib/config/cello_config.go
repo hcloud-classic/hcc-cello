@@ -2,7 +2,7 @@ package config
 
 import "github.com/Terry-Mao/goconf"
 
-var configLocation = "/etc/cello/cello.conf"
+var configLocation = "/etc/hcc/cello/cello.conf"
 
 type celloConfig struct {
 	MysqlConfig *goconf.Section
