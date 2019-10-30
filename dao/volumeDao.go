@@ -1,9 +1,9 @@
 package dao
 
 import (
+	gouuid "github.com/nu7hatch/gouuid"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
-	"hcc/cello/lib/uuidgen"
 	"hcc/cello/model"
 	"strconv"
 	"time"
@@ -174,11 +174,12 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 
 // CreateVolume - cgs
 func CreateVolume(args map[string]interface{}) (interface{}, error) {
-	uuid, err := uuidgen.UUIDgen()
+	out, err := gouuid.NewV4()
 	if err != nil {
-		logger.Logger.Println("Failed to generate uuid!")
+		logger.Logger.Println(err)
 		return nil, err
 	}
+	uuid := out.String()
 
 	volume := model.Volume{
 		UUID:       uuid,
