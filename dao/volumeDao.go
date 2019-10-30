@@ -47,6 +47,13 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	return volume, nil
 }
 
+func checkReadVolumeListPageRow(args map[string]interface{}) bool {
+	_, rowOk := args["row"].(int)
+	_, pageOk := args["page"].(int)
+
+	return !rowOk || !pageOk
+}
+
 // ReadVolumeList - cgs
 func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	var err error
@@ -63,43 +70,36 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	if !userUUIDOk {
 		return nil, err
 	}
-	row, rowOk := args["row"].(int)
-	page, pageOk := args["page"].(int)
-	if !rowOk || !pageOk {
+	row, _ := args["row"].(int)
+	page, _ := args["page"].(int)
+	if checkReadVolumeListPageRow(args) {
 		return nil, err
 	}
 
-	sql := "select * from volume where 1 = 1 and "
+	sql := "select * from volume where 1=1"
 	if sizeOk {
-		sql += " size = '" + strconv.Itoa(size) + "'"
-		if filesystemOk || serverUUIDOk || useTypeOk {
-			sql += " and"
-		}
+		sql += " and size = '" + strconv.Itoa(size) + "'"
 	}
 	if filesystemOk {
-		sql += " filesystem = '" + filesystem + "'"
-		if serverUUIDOk || useTypeOk {
-			sql += " and"
-		}
+		sql += " and filesystem = '" + filesystem + "'"
 	}
 	if serverUUIDOk {
-		sql += " server_uuid = '" + serverUUID + "'"
-		if useTypeOk {
-			sql += " and"
-		}
+		sql += " and server_uuid = '" + serverUUID + "'"
 	}
 	if useTypeOk {
-		sql += " use_type = '" + useType + "' and"
+		sql += " and use_type = '" + useType + "'"
 	}
 
-	sql += " user_uuid = ? order by created_at desc limit ? offset ?"
+	sql += " and user_uuid = ? order by created_at desc limit ? offset ?"
 
 	stmt, err := mysql.Db.Query(sql, userUUID, row, row*(page-1))
 	if err != nil {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	for stmt.Next() {
 		err := stmt.Scan(&requestUUID, &size, &filesystem, &serverUUID, &useType, &userUUID, &createdAt)
@@ -138,7 +138,9 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	for stmt.Next() {
 		//err := stmt.Scan(&uuid, &subnetUUID, &os, &serverName, &serverDesc, &cpu, &memory, &diskSize, &status, &userUUID, &createdAt)
@@ -210,6 +212,15 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 	return volume, nil
 }
 
+func checkUpdateVolumeArgs(args map[string]interface{}) bool {
+	_, sizeOk := args["size"].(int)
+	_, filesystemOk := args["filesystem"].(string)
+	_, serverUUIDOk := args["server_uuid"].(string)
+	_, useTypeOk := args["use_type"].(string)
+
+	return !sizeOk && !filesystemOk && !serverUUIDOk && !useTypeOk
+}
+
 // UpdateVolume - cgs
 func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 	var err error
@@ -231,39 +242,28 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 
 	if requestedUUIDOk {
 
-		if !sizeOk && !filesystemOk && !serverUUIDOk && !useTypeOk {
+		if checkUpdateVolumeArgs(args) {
 			return nil, nil
 		}
 
 		sql := "update volume set"
+		var updateSet = ""
 		if sizeOk {
-			sql += " size = '" + strconv.Itoa(volume.Size) + "'"
-			if filesystemOk || serverUUIDOk || useTypeOk || userUUIDOk {
-				sql += ", "
-			}
+			updateSet += " size = '" + strconv.Itoa(volume.Size) + "', "
 		}
 		if filesystemOk {
-			sql += " filesystem = '" + volume.Filesystem + "'"
-			if serverUUIDOk || useTypeOk || userUUIDOk {
-				sql += ", "
-			}
+			updateSet += " filesystem = '" + volume.Filesystem + "', "
 		}
 		if serverUUIDOk {
-			sql += " server_uuid = '" + volume.ServerUUID + "'"
-			if useTypeOk || userUUIDOk {
-				sql += ", "
-			}
+			updateSet += " server_uuid = '" + volume.ServerUUID + "', "
 		}
 		if useTypeOk {
-			sql += " use_type = '" + volume.UseType + "'"
-			if userUUIDOk {
-				sql += ", "
-			}
+			updateSet += " use_type = '" + volume.UseType + "', "
 		}
 		if userUUIDOk {
-			sql += " user_uuid = " + volume.UserUUID
+			updateSet += " user_uuid = '" + volume.UserUUID + "', "
 		}
-		sql += " where uuid = ?"
+		sql += updateSet[0:len(updateSet)-2] + " where uuid = ?"
 
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
