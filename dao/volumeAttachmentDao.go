@@ -1,9 +1,9 @@
 package dao
 
 import (
+	gouuid "github.com/nu7hatch/gouuid"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
-	"hcc/cello/lib/uuidgen"
 	"hcc/cello/model"
 	"time"
 )
@@ -119,11 +119,12 @@ func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
 
 // CreateVolumeAttachment - cgs
 func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
-	uuid, err := uuidgen.UUIDgen()
+	out, err := gouuid.NewV4()
 	if err != nil {
-		logger.Logger.Println("Failed to generate uuid!")
+		logger.Logger.Println(err)
 		return nil, err
 	}
+	uuid := out.String()
 
 	volumeAttachment := model.VolumeAttachment{
 		UUID:       uuid,
@@ -134,7 +135,7 @@ func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	sql := "insert into volume_attachment(uuid, volume_uuid, server_uuid, created_at, updated_at) values (?, ?, ?, now(), now())"
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
-		logger.Logger.Println(err.Error())
+		logger.Logger.Println(err)
 		return nil, err
 	}
 	defer func() {
