@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"errors"
 	gouuid "github.com/nu7hatch/gouuid"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
@@ -241,9 +242,8 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 	volume.UserUUID = userUUID
 
 	if requestedUUIDOk {
-
 		if checkUpdateVolumeArgs(args) {
-			return nil, nil
+			return nil, errors.New("need some arguments")
 		}
 
 		sql := "update volume set"
