@@ -48,7 +48,7 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	if !copyresult {
 		fmt.Println(test)
 		str := fmt.Sprintf("%v", test)
-		return false, errors.New("Leader Pxe Setting Failed : " + str)
+		return false, errors.New("Compute Pxe Setting Failed : " + str)
 
 	}
 	serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
