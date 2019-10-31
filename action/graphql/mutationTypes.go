@@ -38,13 +38,21 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				result, err := handler.ActionHandle(params.Args)
-				if result {
-					return dao.CreateVolume(params.Args)
+				logger.Logger.Println("Resolving: create_volume")
+
+				err := handler.ActionHandle(params.Args)
+				if err != nil {
+					logger.Logger.Println(err)
+					return nil, err
 				}
 
-				strerr := "create_volume action status=> " + fmt.Sprintln(err)
-				return nil, errors.New("[Cello]Can't Create Volume in true: " + strerr)
+				volume, err := dao.CreateVolume(params.Args)
+				if err != nil {
+					strerr := "create_volume action status=> " + fmt.Sprintln(err)
+					return nil, errors.New("[Cello]Can't Create Volume in true: " + strerr)
+				}
+
+				return volume, nil
 			},
 		},
 		"update_volume": &graphql.Field{
