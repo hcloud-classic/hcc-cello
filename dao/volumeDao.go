@@ -249,7 +249,7 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 		sql := "update volume set"
 		var updateSet = ""
 		if sizeOk {
-			updateSet += " size = '" + strconv.Itoa(volume.Size) + "', "
+			updateSet += " size = " + strconv.Itoa(volume.Size) + ", "
 		}
 		if filesystemOk {
 			updateSet += " filesystem = '" + volume.Filesystem + "', "
