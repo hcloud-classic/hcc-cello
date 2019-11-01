@@ -79,7 +79,7 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 
 	sql := "select * from volume where 1=1"
 	if sizeOk {
-		sql += " and size = '" + strconv.Itoa(size) + "'"
+		sql += " and size = " + strconv.Itoa(size)
 	}
 	if filesystemOk {
 		sql += " and filesystem = '" + filesystem + "'"
