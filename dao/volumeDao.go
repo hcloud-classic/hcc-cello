@@ -1,16 +1,16 @@
 package dao
 
 import (
+	"errors"
+	gouuid "github.com/nu7hatch/gouuid"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
-	"hcc/cello/lib/uuidgen"
 	"hcc/cello/model"
 	"strconv"
 	"time"
 )
 
-// Read
-
+// ReadVolume - cgs
 func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	var volume model.Volume
 	var err error
@@ -48,6 +48,14 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	return volume, nil
 }
 
+func checkReadVolumeListPageRow(args map[string]interface{}) bool {
+	_, rowOk := args["row"].(int)
+	_, pageOk := args["page"].(int)
+
+	return !rowOk || !pageOk
+}
+
+// ReadVolumeList - cgs
 func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	var err error
 	var volumes []model.Volume
@@ -63,43 +71,36 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	if !userUUIDOk {
 		return nil, err
 	}
-	row, rowOk := args["row"].(int)
-	page, pageOk := args["page"].(int)
-	if !rowOk || !pageOk {
+	row, _ := args["row"].(int)
+	page, _ := args["page"].(int)
+	if checkReadVolumeListPageRow(args) {
 		return nil, err
 	}
 
-	sql := "select * from volume where"
+	sql := "select * from volume where 1=1"
 	if sizeOk {
-		sql += " size = '" + strconv.Itoa(size) + "'"
-		if filesystemOk || serverUUIDOk || useTypeOk {
-			sql += " and"
-		}
+		sql += " and size = " + strconv.Itoa(size)
 	}
 	if filesystemOk {
-		sql += " filesystem = '" + filesystem + "'"
-		if serverUUIDOk || useTypeOk {
-			sql += " and"
-		}
+		sql += " and filesystem = '" + filesystem + "'"
 	}
 	if serverUUIDOk {
-		sql += " server_uuid = '" + serverUUID + "'"
-		if useTypeOk {
-			sql += " and"
-		}
+		sql += " and server_uuid = '" + serverUUID + "'"
 	}
 	if useTypeOk {
-		sql += " use_type = '" + useType + "' and"
+		sql += " and use_type = '" + useType + "'"
 	}
 
-	sql += " user_uuid = ? order by created_at desc limit ? offset ?"
+	sql += " and user_uuid = ? order by created_at desc limit ? offset ?"
 
 	stmt, err := mysql.Db.Query(sql, userUUID, row, row*(page-1))
 	if err != nil {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	for stmt.Next() {
 		err := stmt.Scan(&requestUUID, &size, &filesystem, &serverUUID, &useType, &userUUID, &createdAt)
@@ -114,6 +115,7 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	return volumes, nil
 }
 
+// ReadVolumeAll - cgs
 func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	var err error
 	var volumes []model.Volume
@@ -137,7 +139,9 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	for stmt.Next() {
 		//err := stmt.Scan(&uuid, &subnetUUID, &os, &serverName, &serverDesc, &cpu, &memory, &diskSize, &status, &userUUID, &createdAt)
@@ -154,6 +158,7 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	return volumes, nil
 }
 
+// ReadVolumeNum - cgs
 func ReadVolumeNum() (model.VolumeNum, error) {
 	var volumeNum model.VolumeNum
 	var volumeNr int
@@ -170,14 +175,14 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 	return volumeNum, nil
 }
 
-// Create
-
+// CreateVolume - cgs
 func CreateVolume(args map[string]interface{}) (interface{}, error) {
-	uuid, err := uuidgen.Uuidgen()
+	out, err := gouuid.NewV4()
 	if err != nil {
-		logger.Logger.Println("Failed to generate uuid!")
+		logger.Logger.Println(err)
 		return nil, err
 	}
+	uuid := out.String()
 
 	volume := model.Volume{
 		UUID:       uuid,
@@ -186,6 +191,7 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		ServerUUID: args["server_uuid"].(string),
 		UseType:    args["use_type"].(string),
 		UserUUID:   args["user_uuid"].(string),
+		NetworkIP:  args["network_ip"].(string),
 	}
 
 	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid, created_at) values (?, ?, ?, ?, ?, ?, now())"
@@ -194,7 +200,9 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID)
 	if err != nil {
 		logger.Logger.Println(err)
@@ -205,8 +213,16 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 	return volume, nil
 }
 
-// Update
+func checkUpdateVolumeArgs(args map[string]interface{}) bool {
+	_, sizeOk := args["size"].(int)
+	_, filesystemOk := args["filesystem"].(string)
+	_, serverUUIDOk := args["server_uuid"].(string)
+	_, useTypeOk := args["use_type"].(string)
 
+	return !sizeOk && !filesystemOk && !serverUUIDOk && !useTypeOk
+}
+
+// UpdateVolume - cgs
 func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 	var err error
 
@@ -226,47 +242,37 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 	volume.UserUUID = userUUID
 
 	if requestedUUIDOk {
-
-		if !sizeOk && !filesystemOk && !serverUUIDOk && !useTypeOk {
-			return nil, nil
+		if checkUpdateVolumeArgs(args) {
+			return nil, errors.New("need some arguments")
 		}
 
 		sql := "update volume set"
+		var updateSet = ""
 		if sizeOk {
-			sql += " size = '" + strconv.Itoa(volume.Size) + "'"
-			if filesystemOk || serverUUIDOk || useTypeOk || userUUIDOk {
-				sql += ", "
-			}
+			updateSet += " size = " + strconv.Itoa(volume.Size) + ", "
 		}
 		if filesystemOk {
-			sql += " filesystem = '" + volume.Filesystem + "'"
-			if serverUUIDOk || useTypeOk || userUUIDOk {
-				sql += ", "
-			}
+			updateSet += " filesystem = '" + volume.Filesystem + "', "
 		}
 		if serverUUIDOk {
-			sql += " server_uuid = '" + volume.ServerUUID + "'"
-			if useTypeOk || userUUIDOk {
-				sql += ", "
-			}
+			updateSet += " server_uuid = '" + volume.ServerUUID + "', "
 		}
 		if useTypeOk {
-			sql += " use_type = '" + volume.UseType + "'"
-			if userUUIDOk {
-				sql += ", "
-			}
+			updateSet += " use_type = '" + volume.UseType + "', "
 		}
 		if userUUIDOk {
-			sql += " user_uuid = " + volume.UserUUID
+			updateSet += " user_uuid = '" + volume.UserUUID + "', "
 		}
-		sql += " where uuid = ?"
+		sql += updateSet[0:len(updateSet)-2] + " where uuid = ?"
 
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
 			logger.Logger.Println(err.Error())
 			return nil, err
 		}
-		defer stmt.Close()
+		defer func() {
+			_ = stmt.Close()
+		}()
 
 		result, err2 := stmt.Exec(volume.UUID)
 		if err2 != nil {
@@ -280,8 +286,7 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 	return nil, err
 }
 
-// Delete
-
+// DeleteVolume - cgs
 func DeleteVolume(args map[string]interface{}) (interface{}, error) {
 	var err error
 
@@ -293,7 +298,9 @@ func DeleteVolume(args map[string]interface{}) (interface{}, error) {
 			logger.Logger.Println(err.Error())
 			return nil, err
 		}
-		defer stmt.Close()
+		defer func() {
+			_ = stmt.Close()
+		}()
 		result, err2 := stmt.Exec(requestedUUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)

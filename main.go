@@ -7,6 +7,7 @@ import (
 	"hcc/cello/lib/mysql"
 	"hcc/cello/lib/syscheck"
 	"net/http"
+	"strconv"
 )
 
 func main() {
@@ -17,18 +18,28 @@ func main() {
 	if !logger.Prepare() {
 		return
 	}
-	defer logger.FpLog.Close()
+	defer func() {
+		_ = logger.FpLog.Close()
+	}()
+
+	config.Parser()
 
 	err := mysql.Prepare()
 	if err != nil {
 		return
 	}
-	defer mysql.Db.Close()
+	defer func() {
+		_ = mysql.Db.Close()
+	}()
+	// err = logger.CreateDirIfNotExist("/root/boottp/HCC/" + "XXXXXXXXX")
+	// logger.Logger.Println(err)
+	// if err != nil {
+	// 	return
+	// }
+	http.Handle("/graphql", graphql.Handler)
 
-	http.Handle("/graphql", graphql.GraphqlHandler)
-
-	logger.Logger.Println("Server is running on port " + config.HTTPPort)
-	err = http.ListenAndServe(":"+config.HTTPPort, nil)
+	logger.Logger.Println("Server is running on port " + strconv.Itoa(int(config.HTTP.Port)))
+	err = http.ListenAndServe(":"+strconv.Itoa(int(config.HTTP.Port)), nil)
 	if err != nil {
 		logger.Logger.Println("Failed to prepare http server!")
 	}

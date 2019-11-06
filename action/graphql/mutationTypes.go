@@ -1,9 +1,13 @@
 package graphql
 
 import (
-	"github.com/graphql-go/graphql"
+	"errors"
+	"fmt"
 	"hcc/cello/dao"
+	"hcc/cello/lib/handler"
 	"hcc/cello/lib/logger"
+
+	"github.com/graphql-go/graphql"
 )
 
 var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
@@ -23,6 +27,9 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				"server_uuid": &graphql.ArgumentConfig{
 					Type: graphql.String,
 				},
+				"network_ip": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
 				"use_type": &graphql.ArgumentConfig{
 					Type: graphql.String,
 				},
@@ -31,7 +38,21 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				return dao.CreateVolume(params.Args)
+				logger.Logger.Println("Resolving: create_volume")
+
+				err := handler.ActionHandle(params.Args)
+				if err != nil {
+					logger.Logger.Println(err)
+					return nil, err
+				}
+
+				volume, err := dao.CreateVolume(params.Args)
+				if err != nil {
+					strerr := "create_volume action status=> " + fmt.Sprintln(err)
+					return nil, errors.New("[Cello]Can't Create Volume in true: " + strerr)
+				}
+
+				return volume, nil
 			},
 		},
 		"update_volume": &graphql.Field{
