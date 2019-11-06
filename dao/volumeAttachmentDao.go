@@ -1,15 +1,14 @@
 package dao
 
 import (
+	gouuid "github.com/nu7hatch/gouuid"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
-	"hcc/cello/lib/uuidgen"
 	"hcc/cello/model"
 	"time"
 )
 
-// Read
-
+// ReadVolumeAttachment - cgs
 func ReadVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	var volumeAttachment model.VolumeAttachment
 	var err error
@@ -41,6 +40,7 @@ func ReadVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	return volumeAttachment, nil
 }
 
+// ReadVolumeAttachmentList - cgs
 func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) {
 	var err error
 	var volumeAttachments []model.VolumeAttachment
@@ -51,7 +51,7 @@ func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) 
 	volumeUUID, volumeUUIDOk := args["volume_uuid"].(string)
 	serverUUID, serverUUIDOk := args["server_uuid"].(string)
 
-	sql := "select * from volume_attachment where"
+	sql := "select * from volume_attachment where 1 = 1 and "
 	if volumeUUIDOk {
 		sql += " volume_uuid = '" + volumeUUID + "' order by created_at desc"
 	} else if serverUUIDOk {
@@ -65,7 +65,9 @@ func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) 
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	for stmt.Next() {
 		err := stmt.Scan(&uuid, &volumeUUID, &serverUUID, &createdAt, &updatedAt)
@@ -79,6 +81,7 @@ func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) 
 	return volumeAttachments, nil
 }
 
+// ReadVolumeAttachmentAll - cgs
 func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
 
 	var err error
@@ -96,7 +99,9 @@ func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 
 	for stmt.Next() {
 		err := stmt.Scan(&uuid, &volumeUUID, &serverUUID, &createdAt, &updatedAt)
@@ -112,14 +117,14 @@ func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
 	return volumeAttachments, nil
 }
 
-// Create
-
+// CreateVolumeAttachment - cgs
 func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
-	uuid, err := uuidgen.Uuidgen()
+	out, err := gouuid.NewV4()
 	if err != nil {
-		logger.Logger.Println("Failed to generate uuid!")
+		logger.Logger.Println(err)
 		return nil, err
 	}
+	uuid := out.String()
 
 	volumeAttachment := model.VolumeAttachment{
 		UUID:       uuid,
@@ -130,10 +135,12 @@ func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	sql := "insert into volume_attachment(uuid, volume_uuid, server_uuid, created_at, updated_at) values (?, ?, ?, now(), now())"
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
-		logger.Logger.Println(err.Error())
+		logger.Logger.Println(err)
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		_ = stmt.Close()
+	}()
 	result, err := stmt.Exec(volumeAttachment.UUID, volumeAttachment.VolumeUUID, volumeAttachment.ServerUUID)
 	if err != nil {
 		logger.Logger.Println(err)
@@ -144,8 +151,7 @@ func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	return volumeAttachment, nil
 }
 
-// Update
-
+// UpdateVolumeAttachment - cgs
 func UpdateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 
 	var err error
@@ -162,7 +168,9 @@ func UpdateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 			logger.Logger.Println(err.Error())
 			return nil, err
 		}
-		defer stmt.Close()
+		defer func() {
+			_ = stmt.Close()
+		}()
 
 		result, err2 := stmt.Exec(volumeUUID)
 		if err2 != nil {
@@ -177,8 +185,7 @@ func UpdateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	return nil, err
 }
 
-// Delete
-
+// DeleteVolumeAttachment - cgs
 func DeleteVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 	var err error
 
@@ -190,7 +197,9 @@ func DeleteVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 			logger.Logger.Println(err.Error())
 			return nil, err
 		}
-		defer stmt.Close()
+		defer func() {
+			_ = stmt.Close()
+		}()
 		result, err2 := stmt.Exec(requestedUUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)
