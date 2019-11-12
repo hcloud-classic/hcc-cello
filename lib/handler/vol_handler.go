@@ -37,7 +37,7 @@ func CreateVolume(FileSystem string, ServerUUID string, OS string, Size int) (bo
 
 func createzfs(FileSystem string, ServerUUID string, OS string) (bool, interface{}) {
 	volname := FileSystem + OS + "-vol-" + ServerUUID
-	mountpath := "mountpoint=" + defaultdir + "/" + ServerUUID + "/"
+	mountpath := "mountpoint=" + defaultdir + "/" + ServerUUID + "/" + FileSystem
 	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
 	cmd := exec.Command("zfs", "create", "-o", mountpath, zsysteminfo.ZfsName)
 	result, err := cmd.CombinedOutput()
