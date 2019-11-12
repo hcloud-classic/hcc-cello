@@ -18,8 +18,6 @@ var zsysteminfo ZSystem
 
 // CreateVolume : Creatte Volume
 func CreateVolume(FileSystem string, ServerUUID string, OS string, Size int) (bool, interface{}) {
-	// check hostname =>  because zpool follow hostname
-	//
 	hostCheck()
 	volcheck, err := QuotaCheck(ServerUUID)
 	if !volcheck {
@@ -78,7 +76,6 @@ func QuotaCheck(ServerUUID string) (bool, interface{}) {
 	if err != nil {
 		return false, err
 	}
-	// fmt.Println("=> ", strings.Fields(string(testqq)))
 	tmpstr := strings.Fields(string(result))
 	var posofvalue int
 	for i, words := range tmpstr {

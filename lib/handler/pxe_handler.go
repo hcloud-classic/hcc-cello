@@ -58,15 +58,15 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 }
 func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 	leaderpxecfg := grubdefault + leaderoption + commonoption
-	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-2.6.30-krg", -1)
-	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/mapper/krg-root", -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-2.6.30-hcc", -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sda1", -1)
 	fmt.Println("leaderpxecfg => ", leaderpxecfg)
 	err := writeConfigFile(pxeDir, "Leader", leaderpxecfg)
 	if err != nil {
 		return false
 	}
 	computepxecfg := grubdefault + computeoption + commonoption
-	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_INITRAMFS", "initrd.img-2.6.30-krg-nfs", -1)
+	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_INITRAMFS", "initrd.img-2.6.30-hcc-nfs", -1)
 
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_ROOT", "/dev/nfs", -1)
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_NFS_IP", networkIP, -1)
