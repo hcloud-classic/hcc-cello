@@ -4,7 +4,7 @@ var grubdefault = "default Hcloud-Classic\n" +
 	"label Hcloud-Classic\n" +
 	"kernel vmlinuz-2.6.30-hcc\n"
 
-var leaderoption = "initrd=CELLO_PXE_CONF_LEADER_INITRAMFS" +
+var leaderoption = "append initrd=CELLO_PXE_CONF_LEADER_INITRAMFS" +
 	" root=CELLO_PXE_CONF_LEADER_ROOT ro"
 var computeoption = "initrd=CELLO_PXE_CONF_COMPUTE_INITRAMFS" +
 	" root=CELLO_PXE_CONF_COMPUTE_ROOT" +
