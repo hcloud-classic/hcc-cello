@@ -5,7 +5,6 @@ import (
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
-	"hcc/cello/lib/syscheck"
 	"net/http"
 )
 
@@ -21,7 +20,7 @@ func main() {
 
 	err := mysql.Prepare()
 	if err != nil {
-		return
+		panic(err)
 	}
 	defer mysql.Db.Close()
 
@@ -30,6 +29,8 @@ func main() {
 	logger.Logger.Println("Server is running on port " + config.HTTPPort)
 	err = http.ListenAndServe(":"+config.HTTPPort, nil)
 	if err != nil {
+		logger.Logger.Println(err)
 		logger.Logger.Println("Failed to prepare http server!")
+		return
 	}
 }
