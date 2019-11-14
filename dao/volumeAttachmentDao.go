@@ -1,11 +1,12 @@
 package dao
 
 import (
-	gouuid "github.com/nu7hatch/gouuid"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
 	"hcc/cello/model"
 	"time"
+
+	gouuid "github.com/nu7hatch/gouuid"
 )
 
 // ReadVolumeAttachment - cgs
