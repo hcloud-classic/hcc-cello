@@ -92,9 +92,9 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 		sql += " and user_uuid = '" + userUUID + "'"
 	}
 
-	sql += " and user_uuid = ? order by created_at desc limit ? offset ?"
+	sql += " order by created_at desc limit ? offset ?"
 
-	stmt, err := mysql.Db.Query(sql, userUUID, row, row*(page-1))
+	stmt, err := mysql.Db.Query(sql, row, row*(page-1))
 	if err != nil {
 		logger.Logger.Println(err.Error())
 		return nil, err
