@@ -114,32 +114,9 @@ func writeFile(fileLocation string, input string) error {
 func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	tmpstr := "cp -R " + src + " " + dst
 	cmd := exec.Command("/bin/bash", "-c", tmpstr)
-	// cmd := exec.Command("cp", "-R", src, dst)
-	// cmd := exec.Command("cp", "-R", "/root/boottp/HCC/defaultLeader", "/root/boottp/HCC/UASFDQWFQW1234/Leader")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
 	}
 	return true, result
 }
-
-// //CreateDir : test
-// func CreateDir(ServerUUID string) bool {
-// 	var err error
-// 	returnValue := false
-// 	once.Do(func() {
-// 		// Create directory if not exist
-// 		if _, err = os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
-// 			err = logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
-// 			logger.Logger.Println(err)
-// 			if err != nil {
-// 				logger.Logger.Println(err)
-
-// 				panic(err)
-// 			}
-// 		}
-// 		returnValue = true
-// 	})
-
-// 	return returnValue
-// }
