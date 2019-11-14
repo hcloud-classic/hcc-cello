@@ -126,24 +126,3 @@ func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	}
 	return true, result
 }
-
-// //CreateDir : test
-// func CreateDir(ServerUUID string) bool {
-// 	var err error
-// 	returnValue := false
-// 	once.Do(func() {
-// 		// Create directory if not exist
-// 		if _, err = os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
-// 			err = logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
-// 			logger.Logger.Println(err)
-// 			if err != nil {
-// 				logger.Logger.Println(err)
-
-// 				panic(err)
-// 			}
-// 		}
-// 		returnValue = true
-// 	})
-
-// 	return returnValue
-// }

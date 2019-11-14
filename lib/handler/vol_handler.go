@@ -17,14 +17,14 @@ type ZSystem struct {
 var zsysteminfo ZSystem
 
 // CreateVolume : Creatte Volume
-func CreateVolume(FileSystem string, ServerUUID string, OS string, Size int) (bool, interface{}) {
+func CreateVolume(FileSystem string, ServerUUID string, VolType string, Size int) (bool, interface{}) {
 	hostCheck()
 	volcheck, err := QuotaCheck(ServerUUID)
 	if !volcheck {
 		fmt.Println("CreateVolume : check Faild", err)
 		return volcheck, err
 	}
-	createcheck, err := createzfs(FileSystem, ServerUUID, OS)
+	createcheck, err := createzfs(FileSystem, ServerUUID, strings.ToUpper(VolType))
 	if !createcheck {
 		fmt.Println("Create ZFS : Faild")
 		return createcheck, err
@@ -35,9 +35,9 @@ func CreateVolume(FileSystem string, ServerUUID string, OS string, Size int) (bo
 
 }
 
-func createzfs(FileSystem string, ServerUUID string, OS string) (bool, interface{}) {
-	volname := FileSystem + OS + "-vol-" + ServerUUID
-	mountpath := "mountpoint=" + defaultdir + "/" + ServerUUID + "/" + FileSystem + "/" + OS + "/"
+func createzfs(FileSystem string, ServerUUID string, VolType string) (bool, interface{}) {
+	volname := FileSystem + VolType + "-vol-" + ServerUUID
+	mountpath := "mountpoint=" + defaultdir + "/" + ServerUUID + "/" + FileSystem + "/" + VolType + "/"
 	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
 	cmd := exec.Command("zfs", "create", "-o", mountpath, zsysteminfo.ZfsName)
 	result, err := cmd.CombinedOutput()
