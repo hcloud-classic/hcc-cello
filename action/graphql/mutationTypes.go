@@ -3,6 +3,7 @@ package graphql
 import (
 	"errors"
 	"fmt"
+	graphqlType "hcc/cello/action/graphql/type"
 	"hcc/cello/dao"
 	"hcc/cello/lib/handler"
 	"hcc/cello/lib/logger"
@@ -15,7 +16,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 	Fields: graphql.Fields{
 		// volume DB
 		"create_volume": &graphql.Field{
-			Type:        volumeType,
+			Type:        graphqlType.VolumeType,
 			Description: "Create new volume",
 			Args: graphql.FieldConfigArgument{
 				"size": &graphql.ArgumentConfig{
@@ -56,7 +57,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 			},
 		},
 		"update_volume": &graphql.Field{
-			Type:        volumeType,
+			Type:        graphqlType.VolumeType,
 			Description: "Update volume",
 			Args: graphql.FieldConfigArgument{
 				"uuid": &graphql.ArgumentConfig{
@@ -84,7 +85,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 			},
 		},
 		"delete_volume": &graphql.Field{
-			Type:        volumeType,
+			Type:        graphqlType.VolumeType,
 			Description: "Delete volume by uuid",
 			Args: graphql.FieldConfigArgument{
 				"uuid": &graphql.ArgumentConfig{
@@ -98,7 +99,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 		},
 		// volume_attachment DB
 		"create_volume_attachment": &graphql.Field{
-			Type:        volumeAttachmentType,
+			Type:        graphqlType.VolumeAttachmentType,
 			Description: "Create new volume_attachment",
 			Args: graphql.FieldConfigArgument{
 				"volume_uuid": &graphql.ArgumentConfig{
@@ -113,7 +114,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 			},
 		},
 		"update_volume_attachment": &graphql.Field{
-			Type:        volumeAttachmentType,
+			Type:        graphqlType.VolumeAttachmentType,
 			Description: "Update volume",
 			Args: graphql.FieldConfigArgument{
 				"volume_uuid": &graphql.ArgumentConfig{
@@ -129,7 +130,7 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 			},
 		},
 		"delete_volume_attachment": &graphql.Field{
-			Type:        volumeAttachmentType,
+			Type:        graphqlType.VolumeAttachmentType,
 			Description: "Delete volume_attachment by uuid",
 			Args: graphql.FieldConfigArgument{
 				"uuid": &graphql.ArgumentConfig{

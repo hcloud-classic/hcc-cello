@@ -1,10 +1,12 @@
 package graphql
 
 import (
-	"github.com/graphql-go/graphql"
+	graphqlType "hcc/cello/action/graphql/type"
 	"hcc/cello/dao"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
+
+	"github.com/graphql-go/graphql"
 )
 
 var queryTypes = graphql.NewObject(
@@ -13,7 +15,7 @@ var queryTypes = graphql.NewObject(
 		Fields: graphql.Fields{
 			// volume DB
 			"volume": &graphql.Field{
-				Type:        volumeType,
+				Type:        graphqlType.VolumeType,
 				Description: "Get volume by uuid",
 				Args: graphql.FieldConfigArgument{
 					"uuid": &graphql.ArgumentConfig{
@@ -26,7 +28,7 @@ var queryTypes = graphql.NewObject(
 				},
 			},
 			"list_volume": &graphql.Field{
-				Type:        graphql.NewList(volumeType),
+				Type:        graphql.NewList(graphqlType.VolumeType),
 				Description: "Get volume list",
 				Args: graphql.FieldConfigArgument{
 					"uuid": &graphql.ArgumentConfig{
@@ -60,7 +62,7 @@ var queryTypes = graphql.NewObject(
 				},
 			},
 			"all_volume": &graphql.Field{
-				Type:        graphql.NewList(volumeType),
+				Type:        graphql.NewList(graphqlType.VolumeType),
 				Description: "Get all volume list",
 				Args: graphql.FieldConfigArgument{
 					"row": &graphql.ArgumentConfig{
@@ -76,7 +78,7 @@ var queryTypes = graphql.NewObject(
 				},
 			},
 			"num_volume": &graphql.Field{
-				Type:        volumeNum,
+				Type:        graphqlType.VolumeNum,
 				Description: "Get the number of volume",
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 					logger.Logger.Println("Resolving: num_volume")
@@ -89,7 +91,7 @@ var queryTypes = graphql.NewObject(
 			},
 			// volume_attachment DB
 			"volume_attachment": &graphql.Field{
-				Type:        volumeAttachmentType,
+				Type:        graphqlType.VolumeAttachmentType,
 				Description: "Get volume_attachment by uuid",
 				Args: graphql.FieldConfigArgument{
 					"uuid": &graphql.ArgumentConfig{
@@ -102,7 +104,7 @@ var queryTypes = graphql.NewObject(
 				},
 			},
 			"list_volume_attachment": &graphql.Field{
-				Type:        graphql.NewList(volumeAttachmentType),
+				Type:        graphql.NewList(graphqlType.VolumeAttachmentType),
 				Description: "Get volume_attachment list",
 				Args: graphql.FieldConfigArgument{
 					"volume_uuid": &graphql.ArgumentConfig{
@@ -118,7 +120,7 @@ var queryTypes = graphql.NewObject(
 				},
 			},
 			"all_volume_attachment": &graphql.Field{
-				Type:        graphql.NewList(volumeAttachmentType),
+				Type:        graphql.NewList(graphqlType.VolumeAttachmentType),
 				Description: "Get all volume_attachment list",
 				Args:        graphql.FieldConfigArgument{},
 				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
