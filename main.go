@@ -5,6 +5,7 @@ import (
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
+	"hcc/cello/lib/syscheck"
 	"net/http"
 )
 
