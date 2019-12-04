@@ -13,7 +13,7 @@ var Schema, _ = graphql.NewSchema(
 	},
 )
 
-// Handler : GraphQL schema handler
+// GraphqlHandler : GraphQL schema handler
 //
 // Config options of handler
 //
@@ -22,7 +22,7 @@ var Schema, _ = graphql.NewSchema(
 // Pretty : Show sorted json code in GraphiQL
 //
 // GraphiQL : Show GraphQL GUI request form in web browser
-var Handler = handler.New(&handler.Config{
+var GraphqlHandler = handler.New(&handler.Config{
 	Schema:   &Schema,
 	Pretty:   true,
 	GraphiQL: true,

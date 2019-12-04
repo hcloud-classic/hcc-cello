@@ -2,45 +2,31 @@ package main
 
 import (
 	"hcc/cello/action/graphql"
+	celloEnd "hcc/cello/end"
+	celloInit "hcc/cello/init"
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
-	"hcc/cello/lib/mysql"
-	"hcc/cello/lib/syscheck"
 	"net/http"
 	"strconv"
 )
 
+func init() {
+	err := celloInit.MainInit()
+	if err != nil {
+		panic(err)
+	}
+}
 func main() {
-	if !syscheck.CheckRoot() {
-		return
-	}
-
-	if !logger.Prepare() {
-		return
-	}
 	defer func() {
-		_ = logger.FpLog.Close()
+		celloEnd.MainEnd()
 	}()
 
-	config.Parser()
-
-	err := mysql.Prepare()
+	http.Handle("/graphql", graphql.GraphqlHandler)
+	logger.Logger.Println("Opening server on port " + strconv.Itoa(int(config.HTTP.Port)) + "...")
+	err := http.ListenAndServe(":"+strconv.Itoa(int(config.HTTP.Port)), nil)
 	if err != nil {
-		return
-	}
-	defer func() {
-		_ = mysql.Db.Close()
-	}()
-	// err = logger.CreateDirIfNotExist("/root/boottp/HCC/" + "XXXXXXXXX")
-	// logger.Logger.Println(err)
-	// if err != nil {
-	// 	return
-	// }
-	http.Handle("/graphql", graphql.Handler)
-
-	logger.Logger.Println("Server is running on port " + strconv.Itoa(int(config.HTTP.Port)))
-	err = http.ListenAndServe(":"+strconv.Itoa(int(config.HTTP.Port)), nil)
-	if err != nil {
+		logger.Logger.Println(err)
 		logger.Logger.Println("Failed to prepare http server!")
+		return
 	}
 }
