@@ -18,10 +18,10 @@ var serverPxeDefaultDir string
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, interface{}) {
 
 	err := logger.CreateDirIfNotExist(defaultdir + "/" + ServerUUID)
-	logger.Logger.Println(err)
 	if err != nil {
 		return false, "Can't Create Directory at " + serverPxeDefaultDir
 	}
+
 	// if _, err := os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
 	// 	err = os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
 	// 	if err != nil {
@@ -40,19 +40,19 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 
 	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
 	if !copyresult {
-		fmt.Println(test)
+		// logger.Logger.Println(test)
 		str := fmt.Sprintf("%v", test)
 		return false, errors.New("Leader Pxe Setting Failed : " + str)
 	}
 	copyresult, test = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
 	if !copyresult {
-		fmt.Println(test)
+		// logger.Logger.Println(test)
 		str := fmt.Sprintf("%v", test)
 		return false, errors.New("Compute Pxe Setting Failed : " + str)
 
 	}
 	serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
-	fmt.Println("serverPxeDefaultDir=> ", serverPxeDefaultDir)
+	logger.Logger.Println("PxeDefaultDir=> ", serverPxeDefaultDir)
 	if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
 		return false, errors.New("RebuildPxeSetting Failed")
 	}
@@ -64,7 +64,7 @@ func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 	leaderpxecfg := grubdefault + leaderoption + commonoption
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-2.6.30-hcc", -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sda1", -1)
-	// fmt.Println("leaderpxecfg => ", leaderpxecfg)
+	// logger.Logger.Println("leaderpxecfg => ", leaderpxecfg)
 	err := writeConfigFile(pxeDir, "Leader", leaderpxecfg)
 	if err != nil {
 		return false
@@ -74,7 +74,7 @@ func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_ROOT", "/dev/nfs", -1)
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_NFS_IP", networkIP, -1)
-	// fmt.Println("computepxecfg => ", computepxecfg)
+	// logger.Logger.Println("computepxecfg => ", computepxecfg)
 
 	err = writeConfigFile(pxeDir, "Compute", computepxecfg)
 	if err != nil {
@@ -86,7 +86,7 @@ func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 func writeConfigFile(pxeDir string, name string, contents string) error {
 	// confilepath := defaultdir + "/" + ServerUUID
 	confpath := pxeDir + name
-	// fmt.Println("confpath => ", confpath)
+	// logger.Logger.Println("confpath => ", confpath)
 	err := logger.CreateDirIfNotExist(confpath)
 	if err != nil {
 		return err
