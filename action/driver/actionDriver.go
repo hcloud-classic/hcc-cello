@@ -25,6 +25,6 @@ func CreatePxeActionHandler(params graphql.ResolveParams) (interface{}, error) {
 		strerr := "create_volume action status => (" + fmt.Sprintln(err) + ")"
 		return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
 	}
-
+	logger.Logger.Println("[Create Volume] Success : ", volume)
 	return volume, nil
 }
