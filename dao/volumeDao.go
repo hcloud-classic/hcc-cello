@@ -180,7 +180,7 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 func CreateVolume(args map[string]interface{}) (interface{}, error) {
 	out, err := gouuid.NewV4()
 	if err != nil {
-		logger.Logger.Println(err)
+		logger.Logger.Println("[volumeDao]Can't Create Volume UUID : ", err)
 		return nil, err
 	}
 	uuid := out.String()
@@ -206,7 +206,7 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 	}()
 	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID)
 	if err != nil {
-		logger.Logger.Println(err)
+		logger.Logger.Println("[volumeDao]Can't Update DB : ", err)
 		return nil, err
 	}
 	logger.Logger.Println(result.LastInsertId())

@@ -15,12 +15,12 @@ func ActionHandle(args map[string]interface{}) error {
 		actionstatus, err := PreparePxeSetting(args["server_uuid"].(string), args["use_type"].(string), args["network_ip"].(string))
 		if !actionstatus {
 			strerr := "create_volume action status=>actionstatus " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Volume in false: " + strerr)
+			return errors.New("[Cello]Can't Prepare Setting (" + strerr + ")")
 		}
 		createstatus, err := CreateVolume(args["filesystem"].(string), args["server_uuid"].(string), args["use_type"].(string), args["size"].(int))
 		if !createstatus {
 			strerr := "create_volume action status=>createstatus " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Volume in false: " + strerr)
+			return errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
 		}
 
 	}
@@ -31,7 +31,7 @@ func ActionHandle(args map[string]interface{}) error {
 		createstatus, err := CreateVolume(args["filesystem"].(string), args["server_uuid"].(string), args["use_type"].(string), args["size"].(int))
 		if !createstatus {
 			strerr := "create_volume action status=> " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Volume in true: " + strerr)
+			return errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
 		}
 	}
 
