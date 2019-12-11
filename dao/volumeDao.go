@@ -206,10 +206,9 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 	}()
 	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID)
 	if err != nil {
-		logger.Logger.Println("[volumeDao]Can't Update DB : ", err)
+		logger.Logger.Println("[volumeDao]Can't Update DB : ", result, err)
 		return nil, err
 	}
-	logger.Logger.Println(result.LastInsertId())
 
 	return volume, nil
 }

@@ -22,7 +22,7 @@ func ActionHandle(args map[string]interface{}) error {
 			strerr := "create_volume action status=>createstatus " + fmt.Sprintln(err)
 			return errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
 		}
-		logger.Logger.Println("[Action Result] : ", actionstatus, "\n", createstatus)
+		logger.Logger.Println("[Action Result]  PreparePxeSetting : ", actionstatus, " , CreateVolume : ", createstatus)
 
 	}
 
