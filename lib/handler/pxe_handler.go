@@ -20,7 +20,7 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	err := logger.CreateDirIfNotExist(defaultdir + "/" + ServerUUID)
 	logger.Logger.Println(err)
 	if err != nil {
-		return false, "xxxx"
+		return false, "Can't Create Directory at " + serverPxeDefaultDir
 	}
 	// if _, err := os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
 	// 	err = os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
@@ -64,7 +64,7 @@ func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 	leaderpxecfg := grubdefault + leaderoption + commonoption
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-2.6.30-hcc", -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sda1", -1)
-	fmt.Println("leaderpxecfg => ", leaderpxecfg)
+	// fmt.Println("leaderpxecfg => ", leaderpxecfg)
 	err := writeConfigFile(pxeDir, "Leader", leaderpxecfg)
 	if err != nil {
 		return false
@@ -74,7 +74,7 @@ func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_ROOT", "/dev/nfs", -1)
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_NFS_IP", networkIP, -1)
-	fmt.Println("computepxecfg => ", computepxecfg)
+	// fmt.Println("computepxecfg => ", computepxecfg)
 
 	err = writeConfigFile(pxeDir, "Compute", computepxecfg)
 	if err != nil {
@@ -86,7 +86,7 @@ func rebuildPxeSetting(pxeDir string, networkIP string) bool {
 func writeConfigFile(pxeDir string, name string, contents string) error {
 	// confilepath := defaultdir + "/" + ServerUUID
 	confpath := pxeDir + name
-	fmt.Println("confpath => ", confpath)
+	// fmt.Println("confpath => ", confpath)
 	err := logger.CreateDirIfNotExist(confpath)
 	if err != nil {
 		return err

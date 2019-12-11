@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fmt"
+	"hcc/cello/lib/logger"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -21,12 +21,12 @@ func CreateVolume(FileSystem string, ServerUUID string, VolType string, Size int
 	hostCheck()
 	volcheck, err := QuotaCheck(ServerUUID)
 	if !volcheck {
-		fmt.Println("CreateVolume : check Faild", err)
+		logger.Logger.Println("CreateVolume : check Faild", err)
 		return volcheck, err
 	}
 	createcheck, err := createzfs(FileSystem, ServerUUID, strings.ToUpper(VolType))
 	if !createcheck {
-		fmt.Println("Create ZFS : Faild")
+		logger.Logger.Println("Create ZFS : Faild")
 		return createcheck, err
 	}
 	setquota(ServerUUID, Size)
@@ -55,7 +55,7 @@ func setquota(ServerUUID string, Size int) (bool, interface{}) {
 	cmd := exec.Command("zfs", "set", qutoa, refquota, zsysteminfo.ZfsName)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(result, err)
+		logger.Logger.Println(result, err)
 	}
 	zsysteminfo.ZfsName = ""
 	return true, err
@@ -65,7 +65,7 @@ func hostCheck() {
 	result, err := cmd.CombinedOutput()
 	zsysteminfo.PoolName = strings.TrimSpace(string(result))
 	if err != nil {
-		fmt.Println(result, err)
+		logger.Logger.Println(result, err)
 	}
 }
 
