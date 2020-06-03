@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"errors"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
 	"hcc/cello/model"
@@ -166,4 +167,139 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 	volumeNum.Number = volumeNr
 
 	return volumeNum, nil
+}
+
+func CreateVolume(args map[string]interface{}) (interface{}, error) {
+	out, err := gouuid.NewV4()
+	if err != nil {
+		logger.Logger.Println("[volumeDao]Can't Create Volume UUID : ", err)
+		return nil, err
+	}
+	uuid := out.String()
+
+	volume := model.Volume{
+		UUID:       uuid,
+		Size:       args["size"].(int),
+		Filesystem: args["filesystem"].(string),
+		ServerUUID: args["server_uuid"].(string),
+		UseType:    args["use_type"].(string),
+		UserUUID:   args["user_uuid"].(string),
+		NetworkIP:  args["network_ip"].(string),
+	}
+
+	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid, created_at) values (?, ?, ?, ?, ?, ?, now())"
+	stmt, err := mysql.Db.Prepare(sql)
+	if err != nil {
+		logger.Logger.Println(err.Error())
+		return nil, err
+	}
+	defer func() {
+		_ = stmt.Close()
+	}()
+	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID)
+	if err != nil {
+		logger.Logger.Println("[volumeDao]Can't Update DB : ", result, err)
+		return nil, err
+	}
+
+	return volume, nil
+}
+
+func checkUpdateVolumeArgs(args map[string]interface{}) bool {
+	_, sizeOk := args["size"].(int)
+	_, filesystemOk := args["filesystem"].(string)
+	_, serverUUIDOk := args["server_uuid"].(string)
+	_, useTypeOk := args["use_type"].(string)
+
+	return !sizeOk && !filesystemOk && !serverUUIDOk && !useTypeOk
+}
+
+func UpdateVolume(args map[string]interface{}) (interface{}, error) {
+	var err error
+
+	requestedUUID, requestedUUIDOk := args["uuid"].(string)
+	size, sizeOk := args["size"].(int)
+	filesystem, filesystemOk := args["filesystem"].(string)
+	serverUUID, serverUUIDOk := args["server_uuid"].(string)
+	useType, useTypeOk := args["use_type"].(string)
+	userUUID, userUUIDOk := args["user_uuid"].(string)
+
+	volume := new(model.Volume)
+	volume.UUID = requestedUUID
+	volume.Size = size
+	volume.Filesystem = filesystem
+	volume.ServerUUID = serverUUID
+	volume.UseType = useType
+	volume.UserUUID = userUUID
+
+	if requestedUUIDOk {
+		if checkUpdateVolumeArgs(args) {
+			return nil, errors.New("need some arguments")
+		}
+
+		sql := "update volume set"
+		var updateSet = ""
+		if sizeOk {
+			updateSet += " size = " + strconv.Itoa(volume.Size) + ", "
+		}
+		if filesystemOk {
+			updateSet += " filesystem = '" + volume.Filesystem + "', "
+		}
+		if serverUUIDOk {
+			updateSet += " server_uuid = '" + volume.ServerUUID + "', "
+		}
+		if useTypeOk {
+			updateSet += " use_type = '" + volume.UseType + "', "
+		}
+		if userUUIDOk {
+			updateSet += " user_uuid = '" + volume.UserUUID + "', "
+		}
+		sql += updateSet[0:len(updateSet)-2] + " where uuid = ?"
+
+		stmt, err := mysql.Db.Prepare(sql)
+		if err != nil {
+			logger.Logger.Println(err.Error())
+			return nil, err
+		}
+		defer func() {
+			_ = stmt.Close()
+		}()
+
+		result, err2 := stmt.Exec(volume.UUID)
+		if err2 != nil {
+			logger.Logger.Println(err2)
+			return nil, err
+		}
+		logger.Logger.Println(result.LastInsertId())
+		return volume, nil
+	}
+
+	return nil, err
+}
+
+func DeleteVolume(args map[string]interface{}) (interface{}, error) {
+	var err error
+
+	requestedUUID, ok := args["uuid"].(string)
+	if ok {
+		sql := "delete from volume where uuid = ?"
+		stmt, err := mysql.Db.Prepare(sql)
+		if err != nil {
+			logger.Logger.Println(err.Error())
+			return nil, err
+		}
+		defer func() {
+			_ = stmt.Close()
+		}()
+		result, err2 := stmt.Exec(requestedUUID)
+		if err2 != nil {
+			logger.Logger.Println(err2)
+			return nil, err
+		}
+		logger.Logger.Println(result.RowsAffected())
+
+		return requestedUUID, nil
+	}
+
+	return requestedUUID, err
 }
