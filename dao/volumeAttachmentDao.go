@@ -77,3 +77,71 @@ func ReadVolumeAttachmentList(args map[string]interface{}) (interface{}, error) 
 	}
 	return volumeAttachments, nil
 }
+
+func ReadVolumeAttachmentAll(args map[string]interface{}) (interface{}, error) {
+
+	var err error
+	var volumeAttachments []model.VolumeAttachment
+	var uuid string
+	var volumeUUID string
+	var serverUUID string
+	var createdAt time.Time
+	var updatedAt time.Time
+
+	sql := "select * from volume_attachment order by created_at desc"
+
+	stmt, err := mysql.Db.Query(sql)
+	if err != nil {
+		logger.Logger.Println(err.Error())
+		return nil, err
+	}
+	defer func() {
+		_ = stmt.Close()
+	}()
+
+	for stmt.Next() {
+		err := stmt.Scan(&uuid, &volumeUUID, &serverUUID, &createdAt, &updatedAt)
+
+		if err != nil {
+			logger.Logger.Println(err)
+			return nil, err
+		}
+		volumeAttachment := model.VolumeAttachment{UUID: uuid, VolumeUUID: volumeUUID, ServerUUID: serverUUID, CreatedAt: createdAt, UpdatedAt: updatedAt}
+		volumeAttachments = append(volumeAttachments, volumeAttachment)
+	}
+
+	return volumeAttachments, nil
+}
+
+func CreateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
+	out, err := gouuid.NewV4()
+	if err != nil {
+		logger.Logger.Println(err)
+		return nil, err
+	}
+	uuid := out.String()
+
+	volumeAttachment := model.VolumeAttachment{
+		UUID:       uuid,
+		VolumeUUID: args["volume_uuid"].(string),
+		ServerUUID: args["server_uuid"].(string),
+	}
+
+	sql := "insert into volume_attachment(uuid, volume_uuid, server_uuid, created_at, updated_at) values (?, ?, ?, now(), now())"
+	stmt, err := mysql.Db.Prepare(sql)
+	if err != nil {
+		logger.Logger.Println(err)
+		return nil, err
+	}
+	defer func() {
+		_ = stmt.Close()
+	}()
+	result, err := stmt.Exec(volumeAttachment.UUID, volumeAttachment.VolumeUUID, volumeAttachment.ServerUUID)
+	if err != nil {
+		logger.Logger.Println(err)
+		return nil, err
+	}
+	logger.Logger.Println(result.LastInsertId())
+
+	return volumeAttachment, nil
+}
