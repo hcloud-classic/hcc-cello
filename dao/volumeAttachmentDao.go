@@ -178,3 +178,29 @@ func UpdateVolumeAttachment(args map[string]interface{}) (interface{}, error) {
 
 	return nil, err
 }
+func DeleteVolumeAttachment(args map[string]interface{}) (interface{}, error) {
+	var err error
+
+	requestedUUID, ok := args["uuid"].(string)
+	if ok {
+		sql := "delete from volume_attachment where uuid = ?"
+		stmt, err := mysql.Db.Prepare(sql)
+		if err != nil {
+			logger.Logger.Println(err.Error())
+			return nil, err
+		}
+		defer func() {
+			_ = stmt.Close()
+		}()
+		result, err2 := stmt.Exec(requestedUUID)
+		if err2 != nil {
+			logger.Logger.Println(err2)
+			return nil, err
+		}
+		logger.Logger.Println(result.RowsAffected())
+
+		return requestedUUID, nil
+	}
+
+	return requestedUUID, err
+}
