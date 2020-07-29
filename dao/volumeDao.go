@@ -49,7 +49,7 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	return volume, nil
 }
 
-func checkReadVolumeListPageRow(args map[string]interface{}) bool {
+func checkVolumePageRow(args map[string]interface{}) bool {
 	_, rowOk := args["row"].(int)
 	_, pageOk := args["page"].(int)
 
@@ -69,13 +69,10 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	useType, useTypeOk := args["use_type"].(string)
 	userUUID, userUUIDOk := args["user_uuid"].(string)
 
-	if !userUUIDOk {
-		return nil, err
-	}
 	row, _ := args["row"].(int)
 	page, _ := args["page"].(int)
-	if checkReadVolumeListPageRow(args) {
-		return nil, err
+	if checkVolumePageRow(args) {
+		return nil, errors.New("need row and page arguments")
 	}
 
 	sql := "select * from volume where 1=1"
@@ -91,10 +88,13 @@ func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
 	if useTypeOk {
 		sql += " and use_type = '" + useType + "'"
 	}
+	if userUUIDOk {
+		sql += " and user_uuid = '" + userUUID + "'"
+	}
 
-	sql += " and user_uuid = ? order by created_at desc limit ? offset ?"
+	sql += " order by created_at desc limit ? offset ?"
 
-	stmt, err := mysql.Db.Query(sql, userUUID, row, row*(page-1))
+	stmt, err := mysql.Db.Query(sql, row, row*(page-1))
 	if err != nil {
 		logger.Logger.Println(err.Error())
 		return nil, err
@@ -127,10 +127,10 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	var useType string
 	var userUUID string
 	var createdAt time.Time
-	row, rowOk := args["row"].(int)
-	page, pageOk := args["page"].(int)
-	if !rowOk || !pageOk {
-		return nil, err
+	row, _ := args["row"].(int)
+	page, _ := args["page"].(int)
+	if checkVolumePageRow(args) {
+		return nil, errors.New("need row and page arguments")
 	}
 
 	sql := "select * from volume order by created_at desc limit ? offset ?"
