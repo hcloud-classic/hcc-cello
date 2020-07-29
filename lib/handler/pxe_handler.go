@@ -7,19 +7,15 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
 )
-
-var once sync.Once
-var serverPxeDefaultDir string
 
 //PreparePxeSetting : Prepare Pxe Setting, that pxelinux.cfg/default context update
 // create pxe
-func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, interface{}) {
+func PreparePxeSetting(ServerUUID string, OS string, networkIP string, gateway string) (bool, interface{}) {
 
 	err := logger.CreateDirIfNotExist(defaultdir + "/" + ServerUUID)
 	if err != nil {
-		return false, "Can't Create Directory at " + serverPxeDefaultDir
+		return false, "Can't Create Directory at " + defaultdir + "/" + ServerUUID
 	}
 
 	// if _, err := os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
@@ -28,11 +24,6 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	// 		return false, err
 	// 	}
 	// }
-
-	err = logger.CreateDirIfNotExist("/root/boottp/HCC/" + ServerUUID)
-	if err != nil {
-		logger.Logger.Fatal(err)
-	}
 
 	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
 	if !copyresult {
@@ -49,27 +40,33 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string) (bool, in
 	}
 	serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
 	logger.Logger.Println("PxeDefaultDir=> ", serverPxeDefaultDir)
-	if !rebuildPxeSetting(serverPxeDefaultDir, networkIP) {
+	if !rebuildPxeSetting(ServerUUID, serverPxeDefaultDir, networkIP, gateway) {
 		return false, errors.New("RebuildPxeSetting Failed")
 	}
 
 	return true, "Complete Pxe Setting"
 
 }
-func rebuildPxeSetting(pxeDir string, networkIP string) bool {
-	leaderpxecfg := grubdefault + leaderoption + commonoption
-	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-2.6.30-hcc", -1)
+func rebuildPxeSetting(ServerUUID string, pxeDir string, networkIP string, gateway string) bool {
+	leaderpxecfg := grubdefault + leaderoption + iscsioption + commonoption
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_KERNEL", "vmlinuz-hcc", -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-hcc", -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sda1", -1)
+	splitip := strings.Split(networkIP, ".")
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_COMPUTE_SESSION_ID", splitip[2], -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_SERVER_IP", gateway, -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_TARGET_DOMAIN", ServerUUID, -1)
+
 	// logger.Logger.Println("leaderpxecfg => ", leaderpxecfg)
 	err := writeConfigFile(pxeDir, "Leader", leaderpxecfg)
 	if err != nil {
 		return false
 	}
 	computepxecfg := grubdefault + computeoption + commonoption
-	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_INITRAMFS", "initrd.img-2.6.30-hcc-nfs", -1)
+	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_INITRAMFS", "initrd.img-hcc-nfs", -1)
 
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_ROOT", "/dev/nfs", -1)
-	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_NFS_IP", networkIP, -1)
+	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_Leader_IP", networkIP, -1)
 	// logger.Logger.Println("computepxecfg => ", computepxecfg)
 
 	err = writeConfigFile(pxeDir, "Compute", computepxecfg)

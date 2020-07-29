@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
 	"os/exec"
 	"strconv"
@@ -18,13 +19,13 @@ var zsysteminfo ZSystem
 
 // CreateVolume : Creatte Volume
 func CreateVolume(FileSystem string, ServerUUID string, VolType string, Size int) (bool, interface{}) {
-	hostCheck()
+	volumePoolCheck()
 	volcheck, err := QuotaCheck(ServerUUID)
 	if !volcheck {
 		logger.Logger.Println("CreateVolume : check Faild", err)
 		return volcheck, err
 	}
-	createcheck, err := createzfs(FileSystem, ServerUUID, strings.ToUpper(VolType))
+	createcheck, err := clonezvol(FileSystem, ServerUUID, strings.ToUpper(VolType), strconv.Itoa(Size))
 	if !createcheck {
 		logger.Logger.Println("Create ZFS : Faild")
 		return createcheck, err
@@ -33,6 +34,17 @@ func CreateVolume(FileSystem string, ServerUUID string, VolType string, Size int
 
 	return true, err
 
+}
+func clonezvol(FileSystem string, ServerUUID string, VolType string, Size string) (bool, interface{}) {
+
+	volname := FileSystem + VolType + "-vol-" + ServerUUID
+	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
+	cmd := exec.Command("zfs", "clone", config.VolumeConfig.ORIGINVOL, zsysteminfo.ZfsName)
+	result, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, err
+	}
+	return true, result
 }
 
 func createzfs(FileSystem string, ServerUUID string, VolType string) (bool, interface{}) {
@@ -60,12 +72,13 @@ func setquota(ServerUUID string, Size int) (bool, interface{}) {
 	zsysteminfo.ZfsName = ""
 	return true, err
 }
-func hostCheck() {
-	cmd := exec.Command("hostname")
-	result, err := cmd.CombinedOutput()
-	zsysteminfo.PoolName = strings.TrimSpace(string(result))
-	if err != nil {
-		logger.Logger.Println(result, err)
+func volumePoolCheck() {
+	zsysteminfo.PoolName = config.VolumeConfig.VOLUMEPOOL
+	// cmd := exec.Command("hostname")
+	// result, err := cmd.CombinedOutput()
+	// zsysteminfo.PoolName = strings.TrimSpace(string(result))
+	if len(zsysteminfo.PoolName) == 0 {
+		logger.Logger.Println("Please configuration volume management pool (/etc/hcc/cello/cello.conf)")
 	}
 }
 

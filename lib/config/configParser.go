@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/Terry-Mao/goconf"
 	"hcc/cello/lib/logger"
+
+	"github.com/Terry-Mao/goconf"
 )
 
 var conf = goconf.New()
@@ -53,6 +54,24 @@ func parseHTTP() {
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
+}
+
+func parseVolumeHandle() {
+	config.VolumeConfig = conf.Get("volumeHandle")
+	if config.VolumeConfig == nil {
+		logger.Logger.Panicln("no volumeHandle section")
+	}
+
+	VolumeConfig = volumeHandle{}
+	VolumeConfig.VOLUMEPOOL, err = config.VolumeConfig.String("volume_pool")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
+	VolumeConfig.ORIGINVOL, err = config.VolumeConfig.String("origin_vol")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
+
 }
 
 // Parser : Parse config file
