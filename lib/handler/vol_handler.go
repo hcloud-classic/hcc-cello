@@ -21,25 +21,51 @@ var zsysteminfo ZSystem
 func CreateVolume(FileSystem string, ServerUUID string, VolType string, Size int) (bool, interface{}) {
 	volumePoolCheck()
 	volcheck, err := QuotaCheck(ServerUUID)
+	logger.Logger.Println("CreateVolume :QuotaCheck")
 	if !volcheck {
 		logger.Logger.Println("CreateVolume : check Faild", err)
 		return volcheck, err
 	}
-	createcheck, err := clonezvol(FileSystem, ServerUUID, strings.ToUpper(VolType), strconv.Itoa(Size))
-	if !createcheck {
-		logger.Logger.Println("Create ZFS : Faild")
-		return createcheck, err
+	if VolType == "os" {
+		logger.Logger.Println("Create ZFS(OS) : Faild")
+		createcheck, err := clonezvol(FileSystem, ServerUUID, strings.ToUpper(VolType), strconv.Itoa(Size))
+		if !createcheck {
+			logger.Logger.Println("Create ZFS(OS) : Faild")
+			return false, err
+		}
+	} else {
+		createcheck, err := createzvol(FileSystem, ServerUUID, strings.ToUpper(VolType), strconv.Itoa(Size))
+		if !createcheck {
+			logger.Logger.Println("Create ZFS(DATA) : Faild")
+			return false, err
+		}
 	}
+	logger.Logger.Println("CreateVolume :After VolType")
+
 	setquota(ServerUUID, Size)
 
 	return true, err
 
+}
+func createzvol(FileSystem string, ServerUUID string, VolType string, Size string) (bool, interface{}) {
+
+	volname := FileSystem + VolType + "-vol-" + ServerUUID
+	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
+	convertSize := Size + "G"
+	volblocksize := "volblocksize=" + "4096"
+	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, zsysteminfo.ZfsName)
+	result, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, err
+	}
+	return true, result
 }
 func clonezvol(FileSystem string, ServerUUID string, VolType string, Size string) (bool, interface{}) {
 
 	volname := FileSystem + VolType + "-vol-" + ServerUUID
 	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
 	cmd := exec.Command("zfs", "clone", config.VolumeConfig.ORIGINVOL, zsysteminfo.ZfsName)
+	logger.Logger.Println("clonezvol : [", config.VolumeConfig.ORIGINVOL, "<      >", zsysteminfo.ZfsName, "]")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, err
@@ -52,6 +78,8 @@ func createzfs(FileSystem string, ServerUUID string, VolType string) (bool, inte
 	mountpath := "mountpoint=" + defaultdir + "/" + ServerUUID + "/" + FileSystem + "/" + VolType + "/"
 	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
 	cmd := exec.Command("zfs", "create", "-o", mountpath, zsysteminfo.ZfsName)
+	logger.Logger.Println("createzfs : [", config.VolumeConfig.ORIGINVOL, "<      >", zsysteminfo.ZfsName, "]")
+
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, err

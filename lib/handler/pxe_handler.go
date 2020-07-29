@@ -60,7 +60,7 @@ func rebuildPxeSetting(ServerUUID string, pxeDir string, networkIP string, gatew
 	leaderpxecfg := grubdefault + leaderoption + iscsioption + commonoption
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_KERNEL", "vmlinuz-hcc", -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-hcc", -1)
-	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sda1", -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sdb1", -1)
 	splitip := strings.Split(networkIP, ".")
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_COMPUTE_SESSION_ID", splitip[2], -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_SERVER_IP", gateway, -1)
@@ -72,10 +72,14 @@ func rebuildPxeSetting(ServerUUID string, pxeDir string, networkIP string, gatew
 		return false
 	}
 	computepxecfg := grubdefault + computeoption + commonoption
-	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_INITRAMFS", "initrd.img-hcc-nfs", -1)
+	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_KERNEL", "vmlinuz-hcc", -1)
+
+	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_INITRAMFS", "initrd.img-hcc", -1)
 
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_ROOT", "/dev/nfs", -1)
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_Leader_IP", networkIP, -1)
+	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_SESSION_ID", splitip[2], -1)
+
 	// logger.Logger.Println("computepxecfg => ", computepxecfg)
 
 	err = writeConfigFile(pxeDir, "Compute", computepxecfg)

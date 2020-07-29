@@ -68,6 +68,7 @@ func parseVolumeHandle() {
 		logger.Logger.Panicln(err)
 	}
 	VolumeConfig.ORIGINVOL, err = config.VolumeConfig.String("origin_vol")
+	logger.Logger.Println("asdasdasdasdasdas[", VolumeConfig.ORIGINVOL, "]")
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
@@ -82,4 +83,5 @@ func Parser() {
 
 	parseMysql()
 	parseHTTP()
+	parseVolumeHandle()
 }
