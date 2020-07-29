@@ -35,6 +35,9 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				"user_uuid": &graphql.ArgumentConfig{
 					Type: graphql.String,
 				},
+				"gateway_ip": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 				return driver.CreatePxeActionHandler(params)

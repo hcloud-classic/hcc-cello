@@ -17,12 +17,14 @@ func ActionHandle(args map[string]interface{}) error {
 			strerr := "create_volume action status=>actionstatus " + fmt.Sprintln(err)
 			return errors.New("[Cello]Can't Prepare Setting (" + strerr + ")")
 		}
+		logger.Logger.Println("after ActionHandle")
 
 		createstatus, err := CreateVolume(args["filesystem"].(string), args["server_uuid"].(string), args["use_type"].(string), args["size"].(int))
 		if !createstatus {
 			strerr := "create_volume action status=>createstatus " + fmt.Sprintln(err)
 			return errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
 		}
+		logger.Logger.Println("after CreateVolume")
 
 		iscsistatus, err := PrepareIscsiSetting(args["server_uuid"].(string), args["filesystem"].(string), args["use_type"].(string), args["size"].(int))
 		if !iscsistatus {

@@ -4,7 +4,6 @@ import (
 	"hcc/cello/lib/config"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 )
 
@@ -20,9 +19,10 @@ func iscsiServiceHandler() (bool, interface{}) {
 // PrepareIscsiSetting : iscsi setting
 func PrepareIscsiSetting(ServerUUID string, FileSystem string, volumeType string, volumeSize int) (bool, interface{}) {
 	leaderiscsilun := iscsilun
-	leaderiscsilun = strings.Replace(leaderiscsilun, "CELLO_PXE_CONF_ISCSI_LUN_ORDER", "vmlinuz-hcc", -1)
-	leaderiscsilun = strings.Replace(leaderiscsilun, "CELLO_PXE_CONF_ISCSI_ZVOLUME_PATH", config.VolumeConfig.VOLUMEPOOL+"/"+FileSystem+volumeType+"-vol-"+ServerUUID, -1)
-	leaderiscsilun = strings.Replace(leaderiscsilun, "CELLO_PXE_CONF_ISCSI_ZVOLUME_SIZE", strconv.Itoa(volumeSize)+"G", -1)
+	leaderiscsilun = strings.Replace(leaderiscsilun, "CELLO_PXE_CONF_ISCSI_LUN_ORDER", "0", -1)
+	leaderiscsilun = strings.Replace(leaderiscsilun, "CELLO_PXE_CONF_ISCSI_ZVOLUME_PATH", config.VolumeConfig.VOLUMEPOOL+"/"+FileSystem+strings.ToUpper(volumeType)+"-vol-"+ServerUUID, -1)
+	// leaderiscsilun = strings.Replace(leaderiscsilun, "CELLO_PXE_CONF_ISCSI_ZVOLUME_SIZE", strconv.Itoa(volumeSize)+"G", -1)
+	leaderiscsilun = strings.Replace(leaderiscsilun, "CELLO_PXE_CONF_ISCSI_ZVOLUME_SIZE", "100G", -1)
 	leaderiscsitarget := iscsitarget
 	leaderiscsitarget = strings.Replace(leaderiscsitarget, "CELLO_PXE_CONF_ISCSI_TARGET_DOMAIN", ServerUUID, -1)
 	leaderiscsitarget = strings.Replace(leaderiscsitarget, "CELLO_PXE_CONF_ISCSI_LUN", leaderiscsilun, -1)
