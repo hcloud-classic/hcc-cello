@@ -88,7 +88,6 @@ var queryTypes = graphql.NewObject(
 					return volumeNum, err
 				},
 			},
-			// volume_attachment DB
 			"volume_attachment": &graphql.Field{
 				Type:        graphqlType.VolumeAttachmentType,
 				Description: "Get volume_attachment by uuid",
