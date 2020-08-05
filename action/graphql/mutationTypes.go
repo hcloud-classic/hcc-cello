@@ -69,5 +69,18 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 				return dao.UpdateVolume(params.Args)
 			},
 		},
+		"delete_volume": &graphql.Field{
+			Type:        graphqlType.VolumeType,
+			Description: "Delete volume by uuid",
+			Args: graphql.FieldConfigArgument{
+				"uuid": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				logger.Logger.Println("Resolving: delete_volume")
+				return dao.DeleteVolume(params.Args)
+			},
+		},
 	},
 })
