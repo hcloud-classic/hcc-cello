@@ -3,6 +3,7 @@ package graphql
 import (
 	"hcc/cello/action/driver"
 	graphqlType "hcc/cello/action/graphql/type"
+	"hcc/cello/lib/logger"
 
 	"github.com/graphql-go/graphql"
 )
@@ -38,6 +39,34 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 				return driver.CreatePxeActionHandler(params)
+			},
+		},
+		"update_volume": &graphql.Field{
+			Type:        graphqlType.VolumeType,
+			Description: "Update volume",
+			Args: graphql.FieldConfigArgument{
+				"uuid": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+				"size": &graphql.ArgumentConfig{
+					Type: graphql.Int,
+				},
+				"filesystem": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+				"server_uuid": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+				"use_type": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+				"user_uuid": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+			},
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				logger.Logger.Println("Resolving: update_volume")
+				return dao.UpdateVolume(params.Args)
 			},
 		},
 	},
