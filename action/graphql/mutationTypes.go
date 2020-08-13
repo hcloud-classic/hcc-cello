@@ -98,4 +98,20 @@ var mutationTypes = graphql.NewObject(graphql.ObjectConfig{
 			return dao.CreateVolumeAttachment(params.Args)
 		},
 	},
+	"update_volume_attachment": &graphql.Field{
+		Type:        graphqlType.VolumeAttachmentType,
+		Description: "Update volume",
+		Args: graphql.FieldConfigArgument{
+			"volume_uuid": &graphql.ArgumentConfig{
+				Type: graphql.String,
+			},
+			"server_uuid": &graphql.ArgumentConfig{
+				Type: graphql.String,
+			},
+		},
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			logger.Logger.Println("Resolving: update_volume_attachment")
+			return dao.UpdateVolumeAttachment(params.Args)
+		},
+	},
 })
