@@ -13,11 +13,17 @@ import (
 // create pxe
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string, gateway string) (bool, interface{}) {
 
-	err := logger.CreateDirIfNotExist(defaultdir + "/" + ServerUUID)
-	if err != nil {
-		return false, "Can't Create Directory at " + defaultdir + "/" + ServerUUID
+	if _, err := os.Stat(defaultdir + "/" + ServerUUID); os.IsNotExist(err) {
+		err = os.MkdirAll(defaultdir+"/"+ServerUUID, 0755)
+		if err != nil {
+			fmt.Println("Can't make dir")
+		}
 	}
 
+	// if err != nil {
+	// 	return false, "Can't Create Directory at " + defaultdir + "/" + ServerUUID
+	// }
+	fmt.Println("CreateDirIfNotExist")
 	// if _, err := os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
 	// 	err = os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
 	// 	if err != nil {
@@ -40,6 +46,8 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string, gateway s
 		str := fmt.Sprintf("%v", test)
 		return false, errors.New("Leader Pxe Setting Failed : " + str)
 	}
+	fmt.Println("copydefaultsetting L")
+
 	copyresult, test = copydefaultsetting(defaultdir+"/defaultCompute", defaultdir+"/"+ServerUUID+"/"+"Compute")
 	if !copyresult {
 		// logger.Logger.Println(test)
@@ -47,11 +55,15 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string, gateway s
 		return false, errors.New("Compute Pxe Setting Failed : " + str)
 
 	}
+
+	fmt.Println("copydefaultsetting C")
+
 	serverPxeDefaultDir := defaultdir + "/" + ServerUUID + "/"
 	logger.Logger.Println("PxeDefaultDir=> ", serverPxeDefaultDir)
 	if !rebuildPxeSetting(ServerUUID, serverPxeDefaultDir, networkIP, gateway) {
 		return false, errors.New("RebuildPxeSetting Failed")
 	}
+	fmt.Println("serverPxeDefaultDir ")
 
 	return true, "Complete Pxe Setting"
 

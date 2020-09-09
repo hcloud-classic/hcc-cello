@@ -6,11 +6,33 @@ import (
 	"github.com/Terry-Mao/goconf"
 )
 
+// var iscsiconf = fomatter.New()
 var conf = goconf.New()
 var config = celloConfig{}
 var err error
 
+// func loadIscsiDB(){
+// 	celloParams := make(map[string]interface{})
+// 	celloParams["row"] = 0
+// 	celloParams["page"] = 0
+// 	var volumes []model.Volume
+// 	volumes := ReadVolumeAll(celloParams)
+// 	body, _ := json.Marshal(volumes)
+// 	var obj map[string]interface{}
+// 	json.Unmarshal([]byte(body), &obj)
+
+// 	// Make a custom formatter with indent set
+// 	f := colorjson.NewFormatter()
+// 	f.Indent = 4
+
+// 	// Marshall the Colorized JSON
+// 	s, _ := f.Marshal(obj)
+// 	// fmt.Println(string(s))
+// 	logger.Logger.Println("doHcc Action [", string(s), "]")
+
+// }
 func parseMysql() {
+
 	config.MysqlConfig = conf.Get("mysql")
 	if config.MysqlConfig == nil {
 		logger.Logger.Panicln("no mysql section")
@@ -41,6 +63,7 @@ func parseMysql() {
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
+
 }
 
 func parseHTTP() {
@@ -67,8 +90,18 @@ func parseVolumeHandle() {
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
-	VolumeConfig.ORIGINVOL, err = config.VolumeConfig.String("origin_vol")
-	logger.Logger.Println("asdasdasdasdasdas[", VolumeConfig.ORIGINVOL, "]")
+
+	VolumeConfig.SupportOS, err = config.VolumeConfig.Strings("support_os", " ")
+	logger.Logger.Println("Support Os List[", VolumeConfig.SupportOS, "] : ")
+	// for _, args := range VolumeConfig.SupportOS {
+	// 	logger.Logger.Println("Support Os List[", VolumeConfig.SupportOS, args, "]")
+
+	// }
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
+	VolumeConfig.ORIGINVOL, err = config.VolumeConfig.Strings("origin_vol", " ")
+	logger.Logger.Println("Support Volume List[", VolumeConfig.ORIGINVOL, "]")
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}

@@ -2,7 +2,9 @@ package handler
 
 import (
 	"hcc/cello/lib/config"
+	"hcc/cello/lib/formatter"
 	"hcc/cello/lib/logger"
+	"hcc/cello/model"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -17,55 +19,65 @@ type ZSystem struct {
 
 var zsysteminfo ZSystem
 
+func addVolObejct(volume model.Volume) {
+	if formatter.VolObjectMap.Domain[volume.ServerUUID] == nil {
+		formatter.VolObjectMap.PutDomain(volume.ServerUUID)
+	}
+	if formatter.VolObjectMap.Domain[volume.ServerUUID] != nil {
+		formatter.VolObjectMap.SetIscsiLun(volume, formatter.DevPathBuilder(volume))
+	}
+}
+
+//To do
+func removeVolObejct(volume model.Volume) {
+	// if formatter.VolObjectMap.Domain[volume.ServerUUID] == nil {
+	// 	formatter.VolObjectMap.PutDomain(volume.ServerUUID)
+	// }
+	// if formatter.VolObjectMap.Domain[volume.ServerUUID] != nil {
+	// 	formatter.VolObjectMap.SetIscsiLun(volume, formatter.DevPathBuilder(volume))
+	// }
+}
+
 // CreateVolume : Creatte Volume
-func CreateVolume(FileSystem string, ServerUUID string, VolType string, Size int) (bool, interface{}) {
+func CreateVolume(volume model.Volume) (bool, interface{}) {
 	volumePoolCheck()
-	volcheck, err := QuotaCheck(ServerUUID)
+	volume.Pool = config.VolumeConfig.VOLUMEPOOL
+	volcheck, err := QuotaCheck(volume.ServerUUID)
 	logger.Logger.Println("CreateVolume :QuotaCheck")
 	if !volcheck {
 		logger.Logger.Println("CreateVolume : check Faild", err)
 		return volcheck, err
 	}
-	if VolType == "os" {
-		logger.Logger.Println("Create ZFS(OS) : Faild")
-		createcheck, err := clonezvol(FileSystem, ServerUUID, strings.ToUpper(VolType), strconv.Itoa(Size))
+	if volume.UseType == "os" {
+		createcheck, err := clonezvol(volume)
 		if !createcheck {
 			logger.Logger.Println("Create ZFS(OS) : Faild")
 			return false, err
 		}
 	} else {
-		createcheck, err := createzvol(FileSystem, ServerUUID, strings.ToUpper(VolType), strconv.Itoa(Size))
+		createcheck, err := createzvol(volume)
 		if !createcheck {
 			logger.Logger.Println("Create ZFS(DATA) : Faild")
 			return false, err
 		}
 	}
+	addVolObejct(volume)
 	logger.Logger.Println("CreateVolume :After VolType")
 
-	setquota(ServerUUID, Size)
+	// setquota(ServerUUID, Size)
 
 	return true, err
 
 }
-func createzvol(FileSystem string, ServerUUID string, VolType string, Size string) (bool, interface{}) {
 
-	volname := FileSystem + VolType + "-vol-" + ServerUUID
-	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
-	convertSize := Size + "G"
+func createzvol(volume model.Volume) (bool, interface{}) {
+
+	// volname := FileSystem + "-" + VolType + "-" + ServerUUID
+
+	volname := formatter.VolNameBuilder(volume)
+	convertSize := strconv.Itoa(volume.Size) + "G"
 	volblocksize := "volblocksize=" + "4096"
-	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, zsysteminfo.ZfsName)
-	result, err := cmd.CombinedOutput()
-	if err != nil {
-		return false, err
-	}
-	return true, result
-}
-func clonezvol(FileSystem string, ServerUUID string, VolType string, Size string) (bool, interface{}) {
-
-	volname := FileSystem + VolType + "-vol-" + ServerUUID
-	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
-	cmd := exec.Command("zfs", "clone", config.VolumeConfig.ORIGINVOL, zsysteminfo.ZfsName)
-	logger.Logger.Println("clonezvol : [", config.VolumeConfig.ORIGINVOL, "<      >", zsysteminfo.ZfsName, "]")
+	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, volname)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, err
@@ -73,12 +85,28 @@ func clonezvol(FileSystem string, ServerUUID string, VolType string, Size string
 	return true, result
 }
 
-func createzfs(FileSystem string, ServerUUID string, VolType string) (bool, interface{}) {
-	volname := FileSystem + VolType + "-vol-" + ServerUUID
-	mountpath := "mountpoint=" + defaultdir + "/" + ServerUUID + "/" + FileSystem + "/" + VolType + "/"
-	zsysteminfo.ZfsName = zsysteminfo.PoolName + "/" + volname
-	cmd := exec.Command("zfs", "create", "-o", mountpath, zsysteminfo.ZfsName)
-	logger.Logger.Println("createzfs : [", config.VolumeConfig.ORIGINVOL, "<      >", zsysteminfo.ZfsName, "]")
+func clonezvol(volume model.Volume) (bool, interface{}) {
+	volname := formatter.VolNameBuilder(volume)
+	var originVolName = ""
+	for _, args := range config.VolumeConfig.ORIGINVOL {
+		if strings.Contains(strings.ToLower(args), strings.ToLower(volume.Filesystem)) {
+			originVolName = args
+			break
+		}
+	}
+	cmd := exec.Command("zfs", "clone", originVolName, volname)
+	logger.Logger.Println("clonezvol : [", originVolName, " To ", volname, "]")
+	result, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, err
+	}
+	return true, result
+}
+
+func createzfs(volume model.Volume) (bool, interface{}) {
+	volname := formatter.VolNameBuilder(volume)
+	mountpath := "mountpoint=" + defaultdir + "/" + volname
+	cmd := exec.Command("zfs", "create", "-o", mountpath, volname)
 
 	result, err := cmd.CombinedOutput()
 	if err != nil {
@@ -87,6 +115,7 @@ func createzfs(FileSystem string, ServerUUID string, VolType string) (bool, inte
 	return true, result
 }
 
+//Deprecate
 // zfs set quota=20G refquota=20G master/UUID-TEST
 func setquota(ServerUUID string, Size int) (bool, interface{}) {
 	qutoa := "quota=" + strconv.Itoa(Size) + "G"
@@ -100,6 +129,8 @@ func setquota(ServerUUID string, Size int) (bool, interface{}) {
 	zsysteminfo.ZfsName = ""
 	return true, err
 }
+
+//Deprecate
 func volumePoolCheck() {
 	zsysteminfo.PoolName = config.VolumeConfig.VOLUMEPOOL
 	// cmd := exec.Command("hostname")

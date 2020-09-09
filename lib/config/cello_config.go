@@ -9,6 +9,7 @@ type celloConfig struct {
 	HTTPConfig   *goconf.Section
 	CelloConfig  *goconf.Section
 	VolumeConfig *goconf.Section
+	SupportOS    *goconf.Section
 }
 
 /*-----------------------------------

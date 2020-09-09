@@ -27,6 +27,12 @@ var VolumeType = graphql.NewObject(
 			"user_uuid": &graphql.Field{
 				Type: graphql.String,
 			},
+			"lun_num": &graphql.Field{
+				Type: graphql.Int,
+			},
+			"pool": &graphql.Field{
+				Type: graphql.Int,
+			},
 			"created_at": &graphql.Field{
 				Type: graphql.String,
 			},
