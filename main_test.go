@@ -1,26 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"hcc/cello/action/graphql"
-	celloEnd "hcc/cello/end"
-	celloInit "hcc/cello/init"
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
 	"net/http"
 	"strconv"
+	"testing"
 )
 
-func init() {
-	err := celloInit.MainInit()
-	if err != nil {
-		panic(err)
-	}
-}
+func TestPrepare(t *testing.T) {
 
-func main() {
-	defer func() {
-		celloEnd.MainEnd()
-	}()
+	if !logger.Prepare() {
+		fmt.Println("error occurred while preparing logger")
+	}
+
+	config.Parser()
 
 	http.Handle("/graphql", graphql.GraphqlHandler)
 	logger.Logger.Println("Opening server on port " + strconv.Itoa(int(config.HTTP.Port)) + "...")
@@ -30,4 +26,5 @@ func main() {
 		logger.Logger.Println("Failed to prepare http server!")
 		return
 	}
+
 }

@@ -16,6 +16,8 @@ type Volume struct {
 	ServerUUID string    `json:"server_uuid"`
 	UseType    string    `json:"use_type"` //
 	UserUUID   string    `json:"user_uuid"`
+	LunNum     int       `json:"lun_num"`
+	Pool       string    `json:"pool"`
 	CreatedAt  time.Time `json:"created_at"`
 	NetworkIP  string    `json:"network_ip"`
 	GatewayIP  string    `json:"gateway_ip"`

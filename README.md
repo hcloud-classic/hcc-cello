@@ -6,9 +6,17 @@
 
 # Cello 모듈 매뉴얼
 
+```shell
+Cello 는 크게 2가지 기능을 담당 합니다.
+1. ZFS를 통해 생성한 볼륨을  ISCSI 로 배포
+2. pxeboot를 위한 tftp 설정
+```
 
 
-## Graphql
+
+
+
+## ~~Graphql~~
 
 ```shell
 create_volume
@@ -42,26 +50,55 @@ mutation _ {
 
 
 
-## Create Volume
+## Manage Volume
 
-볼륨을 생성은 크게 두가지로 구분된다.
+Storage Node 에서 하는 첫번째 역할은 볼륨 관리이다.
+
+볼륨을 관리는 크게 두가지로 구분된다.
 
 1. 필수 파일시스템 볼륨
 2. 데이터 볼륨
 
-두가지의 볼륨으로 구분지은 이유는 다음과 같다.
+두가지의 볼륨으로 구분 하는 이유는 다음과 같다.
 
-### 볼륨 타입
+### Volume 정의
 
 #### 파일시스템 볼륨
 
-필수 파일시스템 볼륨은 PXEboot 시에 Iscsi로 제공될 파일시스템이 담긴 볼륨을 의미한다. 물론 사전에 관리자에 의해 해당 볼륨은 적절한 운영체제 및 HCC 의 커널로 설치가 완료 되어 있다.
+필수 파일시스템 볼륨은 PXEboot 시에 Iscsi로 제공될 파일시스템이 담긴 볼륨을 의미한다. 물론 사전에 관리자에 의해 해당 볼륨은 적절한 운영체제 및 HCC 의 커널및 관련 미들웨어, vnc등 필요한 설정이 전부 완료 되어 있다.
 
 #### 데이터 볼륨
 
 데이터 볼륨은 사용자의 요청에 의해 제공되는 데이터용 볼륨을 의미한다. 쿼터의 제한이 따른다.
 
-볼륨 타입을 정의 했다면 다음은 PXEBoot 를 하기위한 설정과 데이터의 준비이다.
+데이터 볼륨의 정책은 다음과 같다.
+
+1. 사용자에게 부여된 쿼터의 제한에 따라 생성 요청을 할 수 있다.
+2. 생성은 서버 생성 요청 및 추가로 데이터 볼륨을 따로 생성 할 수 있다.
+3. 생성된 볼륨의 용량에 대한 수정은 불가 하다.(생성및 삭제만 가능)
+4. 볼륨은 파티셔닝 및 포맷이 안되어 있기 때문에 사용자가 직접 해야 한다.
+
+### Volume  배포
+
+생성된 볼륨은 iSCSI 서버를 통해 배포 된다.
+
+각 볼륨은 해당 서버의 UUID를 기준으로 도메인을 설정하여 lun에 등록된다.
+
+#### 주의사항
+
+iSCSI 설정에서 같은 도메인 내에서 볼륨 추가 및 삭제는 `service ctld reload` 를 통해 업데이트를 할 수 있다.
+
+하지만, 볼륨의 크기를 조절했다거나 잘못된 설정이 있을때에는 반드시 `service ctld restart`를 해줘야 한다.
+
+또한 부팅시 특정 볼륨 lun이 인식이 안되고 iSCSI로 login 하는 과정에서 에러가 발생한다면 Storage Node에서 설정이 잘못 되어 있거나, 해당 볼륨이 없기 때문에 발생하는 것이다.
+
+이럴때에는 Storage Node의 설정을 알맞게 수정해 준 후 `service ctld restart`를 해줘야 한다.
+
+
+
+## TFTP Server
+
+Storage Node 에서 하는 두번째 역할이다.
 
 ### PXESetting
 
@@ -89,5 +126,150 @@ mutation _ {
 
 각각의 디렉토리는 Cello에 의해 ServerUUID명의 디렉토리 하위로 복사되며 pxeboot에 필요한 config 파일은 Cello에 의해 내용이 수정된다.
 
+해당 디렉토리(defaultLeader, defaultCompute)는 최초 서버 생성시 서버의 UUID로 구성된 디렉토리에 복사 된다. 설정은 이후에 서버에 맞게 업데이트 된다.
 
+## Clone Volume
+
+볼륨을 Clone 하는 이유는 서버를 생성시 미리 준비된 OS 용 볼륨으로 Provisioning 하기 위함이다.
+
+미리 생성된 OS별 볼륨의 크기는 100G로 고정이며, 이를 기준으로 clone하여 증분데이터만 저장한다. clone 은 원본 볼륨의 스냅샷 단위로 복제가 된다.
+
+## ISCSI Service Handler
+
+추가된 볼륨에 대해 룬 작성
+
+서비스 재시작
+
+
+
+config 설정을 하면 reload 해줘야함
+
+### ctl.conf 설정
+
+```shell
+$ vim /etc/ctl.conf
+portal-group pg0 {
+	discovery-auth-group no-authentication
+	listen 0.0.0.0
+	listen [::]
+	
+}
+
+
+lun codex_test {
+	path /dev/zvol/master/testimg
+	size 1G
+}
+
+
+target iqn.stos.target {
+	auth-group no-authentication
+	portal-group pg0
+	alias codex_target
+	lun 0 codex_test
+}
+```
+
+하지만 cello 에서 다루기 편하게 할라면 시리얼 라이즈 시켜줘야함
+
+```shell
+
+portal-group pg0 { discovery-auth-group no-authentication listen 0.0.0.0 listen [::] }
+
+lun codex_test { path /dev/zvol/master/testimg size 1G }
+lun qwe { path /dev/zvol/master/qwe size 1G }
+target iqn.stos.target { auth-group no-authentication portal-group pg0 alias codex_target lun 0 codex_test lun 1 qwe }
+```
+
+#### 주의사항
+
+ctld 서비스는 **/etc/ctl.conf** 를 파싱할 때, 엄격한 문법을 따진다.
+
+1. 주석 사용 불가
+
+   파일 내용에  주석(comment)을 사용 할 수 업다.
+
+   일반적으로 쉘스크립트에서는 **#** 으로 주석을 쓸 수 있다.
+
+2. 각 요소의 sequential 한 순서
+
+   만약 **iqn.codex.target** 도메인 에 있는 test라는 0번의 **lun** 이 있다고 가정했을 때, 해당 룬 셋팅을 설정값의 순서에서 도메인 보다 밑에 있으면 안된다.
+
+### DB
+
+#### ctl.conf
+
+```
+struct iscsitempl{
+	target domaintarget []
+	
+}
+struct domaintarget{
+	lun string []
+}
+```
+
+
+
+## API List
+
+
+
+### create_volume
+
+`OS`
+
+```shell
+server_uuid : uuid
+use_type : os
+size : none
+network_ip : (a.b.c.d) 대역에서 c값만 사용 
+```
+
+
+
+
+
+## DataSet
+
+
+
+`ZFS`
+
+> FileSystem-VolType-ServerUUID
+
+
+
+vol_handler
+
+FileSystem : OS(기본 운영체제 볼륨), DATA(추가 볼륨)
+
+OS 볼륨 기본 제공 용량은 100G 고정
+
+```shell
+# OS, Data
+ex) debian-OS-675acb49-b118-43e9-624a-970139c4f4ff
+```
+
+
+
+`iscsi`
+
+> TargetName : ServerUUID
+>
+> Lun : VolType-ServerUUID
+>
+> 0(OS), 1(DATA)...
+
+object_handler
+
+* iscsi config example
+
+```shell
+# iscsi conf /etc/ctl.conf
+portal-group pg0 { discovery-auth-group no-authentication listen 0.0.0.0 listen [::] }
+lun FileSystem-ServerUUID { path /dev/zvol/volmgmt/FileSystem-VolType-ServerUUID size 100G }
+lun FileSystem-ServerUUID { path /dev/zvol/volmgmt/FileSystem-VolType-ServerUUID 5120G }
+target iqn.ServerUUID.target {auth-group no-authentication portal-group pg0 lun 0 VolType-ServerUUID lun 1 VolType-ServerUUID}
+```
 

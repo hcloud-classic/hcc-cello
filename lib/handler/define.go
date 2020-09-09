@@ -15,13 +15,16 @@ var iscsioption = "netroot=iscsi:CELLO_PXE_CONF_ISCSI_SERVER_IP:tcp:3260:0:iqn.C
 
 var defaultdir = "/root/boottp/HCC"
 var pxecfgpath = "/pxelinux.cfg/default"
+var configdir = "/etc/hcc/cello"
+var iscsitarget = "target iqn.CELLO_PXE_CONF_ISCSI_TARGET_DOMAIN.target {" +
+	" auth-group no-authentication" +
+	" portal-group pg0" +
+	" CELLO_PXE_CONF_ISCSI_LUN" +
+	" }\n\n"
+var iscsiportal = "portal-group pg0 { discovery-auth-group no-authentication listen 0.0.0.0 listen [::] }\n"
+var iscsilun = "lun  LUN_NAME {" +
+	"	path CELLO_PXE_CONF_ISCSI_ZVOLUME_PATH" +
+	"	size CELLO_PXE_CONF_ISCSI_ZVOLUME_SIZE" +
+	" }\n"
 
-var iscsitarget = "target iqn.CELLO_PXE_CONF_ISCSI_TARGET_DOMAIN.target {\n" +
-	"auth-group no-authentication\n" +
-	"portal-group pg0\n" +
-	"CELLO_PXE_CONF_ISCSI_LUN\n" +
-	"}"
-var iscsilun = "lun CELLO_PXE_CONF_ISCSI_LUN_ORDER {\n" +
-	"	path /dev/zvol/CELLO_PXE_CONF_ISCSI_ZVOLUME_PATH\n" +
-	"	size CELLO_PXE_CONF_ISCSI_ZVOLUME_SIZE\n" +
-	"}"
+	// GlobalVolumesDB : Load volume info from DB

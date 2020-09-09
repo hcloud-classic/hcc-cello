@@ -26,5 +26,10 @@ func MainInit() error {
 	// 	return err
 	// }
 
+	err = getVolumeDB()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

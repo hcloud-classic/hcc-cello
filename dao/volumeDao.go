@@ -22,6 +22,7 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	var serverUUID string
 	var useType string
 	var userUUID string
+	var lunNum int
 	var createdAt time.Time
 
 	sql := "select * from volume where uuid = ?"
@@ -32,6 +33,7 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 		&serverUUID,
 		&useType,
 		&userUUID,
+		&lunNum,
 		&createdAt)
 	if err != nil {
 		logger.Logger.Println(err)
@@ -44,6 +46,7 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	volume.ServerUUID = serverUUID
 	volume.UseType = useType
 	volume.UserUUID = userUUID
+	volume.LunNum = lunNum
 	volume.CreatedAt = createdAt
 
 	return volume, nil
@@ -126,6 +129,8 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	var serverUUID string
 	var useType string
 	var userUUID string
+	var lunNum int
+	var pool string
 	var createdAt time.Time
 	row, _ := args["row"].(int)
 	page, _ := args["page"].(int)
@@ -133,26 +138,30 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 		return nil, errors.New("need row and page arguments")
 	}
 
-	sql := "select * from volume order by created_at desc limit ? offset ?"
+	sql := "select * from cello.volume order by created_at desc limit ? offset ?"
 
 	stmt, err := mysql.Db.Query(sql, row, row*(page-1))
+	// stmt, err := mysql.Db.Query(sql, row, 0)
+
 	if err != nil {
+
 		logger.Logger.Println(err.Error())
 		return nil, err
 	}
+
 	defer func() {
 		_ = stmt.Close()
 	}()
 
 	for stmt.Next() {
 		//err := stmt.Scan(&uuid, &subnetUUID, &os, &serverName, &serverDesc, &cpu, &memory, &diskSize, &status, &userUUID, &createdAt)
-		err := stmt.Scan(&requestUUID, &size, &filesystem, &serverUUID, &useType, &userUUID, &createdAt)
+		err := stmt.Scan(&requestUUID, &size, &filesystem, &serverUUID, &useType, &userUUID, &lunNum, &pool, &createdAt)
 
 		if err != nil {
 			logger.Logger.Println(err)
 			return nil, err
 		}
-		volume := model.Volume{UUID: requestUUID, Size: size, Filesystem: filesystem, ServerUUID: serverUUID, UseType: useType, UserUUID: userUUID, CreatedAt: createdAt}
+		volume := model.Volume{UUID: requestUUID, Size: size, Filesystem: filesystem, ServerUUID: serverUUID, UseType: useType, UserUUID: userUUID, LunNum: lunNum, Pool: pool, CreatedAt: createdAt}
 		volumes = append(volumes, volume)
 	}
 
@@ -192,10 +201,12 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 		ServerUUID: args["server_uuid"].(string),
 		UseType:    args["use_type"].(string),
 		UserUUID:   args["user_uuid"].(string),
+		LunNum:     args["lun_num"].(int),
+		Pool:       args["pool"].(string),
 		NetworkIP:  args["network_ip"].(string),
 	}
 
-	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid, created_at) values (?, ?, ?, ?, ?, ?, now())"
+	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid,lun_num , pool,created_at) values (?, ?, ?, ?, ?, ?, ?, ?, now())"
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
 		logger.Logger.Println(err.Error())
@@ -204,7 +215,7 @@ func CreateVolume(args map[string]interface{}) (interface{}, error) {
 	defer func() {
 		_ = stmt.Close()
 	}()
-	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID)
+	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID, volume.LunNum, volume.Pool)
 	if err != nil {
 		logger.Logger.Println("[volumeDao]Can't Update DB : ", result, err)
 		return nil, err
