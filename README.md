@@ -273,3 +273,59 @@ lun FileSystem-ServerUUID { path /dev/zvol/volmgmt/FileSystem-VolType-ServerUUID
 target iqn.ServerUUID.target {auth-group no-authentication portal-group pg0 lun 0 VolType-ServerUUID lun 1 VolType-ServerUUID}
 ```
 
+
+
+
+
+
+
+## zfs 관련 command 정리
+
+```
+# 이름만 리턴
+zpool list -H -o name
+master
+zpool list -H -o capacity
+19%
+zpool list -H -o free master
+14.1G
+zpool list -H -o size master
+17.5G
+```
+
+
+
+
+
+
+
+### API Example
+
+```
+mutation _ {
+  create_volume(size:10, filesystem:"centos", server_uuid:"999955fd-08ea-4ede-4e03-f2220724f11d", use_type:"os", user_uuid:"codex",lun_num:0,gateway_ip:"172.18.1.1",pool:"master",network_ip:"172.18.1.1") {
+    uuid
+    size
+    filesystem
+    server_uuid
+    use_type
+    user_uuid
+    created_at
+  }
+  
+}
+
+mutation _ {
+  create_volume(size:10, filesystem:"centos", server_uuid:"111155fd-08ea-4ede-4e03-f2220724f11d", use_type:"os", user_uuid:"ush",lun_num:0,gateway_ip:"172.18.1.1",pool:"master",network_ip:"172.18.1.1") {
+    uuid
+    size
+    filesystem
+    server_uuid
+    use_type
+    user_uuid
+    created_at
+  }
+  
+}
+```
+

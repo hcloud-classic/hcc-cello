@@ -7,6 +7,7 @@ import (
 	"hcc/cello/lib/formatter"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
+	"strconv"
 )
 
 // ReloadAllofVolInfo : Reload All of volume info
@@ -19,6 +20,7 @@ func ReloadAllofVolInfo() error {
 	if err != nil {
 		fmt.Println("Error")
 	}
+
 	formatter.GlobalVolumesDB = dbVol.([]model.Volume)
 	formatter.VolObjectMap.PreLoad()
 	// For Debug, What is in "formatter.GlobalVolumesDB"
@@ -37,7 +39,7 @@ func ReloadAllofVolInfo() error {
 }
 
 //ActionHandle : action handler
-func ActionHandle(args map[string]interface{}) error {
+func ActionHandle(args map[string]interface{}) (interface{}, error) {
 
 	volume := model.Volume{
 		Size:       args["size"].(int),
@@ -47,29 +49,36 @@ func ActionHandle(args map[string]interface{}) error {
 		UserUUID:   args["user_uuid"].(string),
 		NetworkIP:  args["network_ip"].(string),
 		GatewayIP:  args["gateway_ip"].(string),
+		//cello select volume pool itself
+		Pool: AvailablePoolCheck(),
+	}
+
+	if volume.Pool == "" {
+		strerr := "create_volume action status=> There is no selected pool "
+		return nil, errors.New("[Cello]Can't Prepare Setting (" + strerr + ")")
 	}
 
 	if args["use_type"].(string) == "os" {
 		logger.Logger.Println("ActionHandle: Creating OS volume")
 
-		actionstatus, err := PreparePxeSetting(args["server_uuid"].(string), args["use_type"].(string), args["network_ip"].(string), args["gateway_ip"].(string))
-		if !actionstatus {
-			strerr := "create_volume action status=>actionstatus " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Prepare Setting (" + strerr + ")")
-		}
-		logger.Logger.Println("after ActionHandle")
-
 		createstatus, err := CreateVolume(volume)
 		if !createstatus {
 			strerr := "create_volume action status=>createstatus " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
+			return nil, errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
 		}
-		logger.Logger.Println("after CreateVolume")
+		lunNum := err.(string)
+		volume.LunNum, _ = strconv.Atoi(lunNum)
+
+		actionstatus, err := PreparePxeSetting(args["server_uuid"].(string), args["use_type"].(string), args["network_ip"].(string), args["gateway_ip"].(string))
+		if !actionstatus {
+			strerr := "create_volume action status=>actionstatus " + fmt.Sprintln(err)
+			return nil, errors.New("[Cello]Can't Prepare Setting (" + strerr + ")")
+		}
 
 		iscsistatus, err := WriteIscsiConfigObject(volume)
 		if !iscsistatus {
 			strerr := "create_volume action status=>iscsistatus " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Iscsi Setting ( " + strerr + ")")
+			return nil, errors.New("[Cello]Can't Create Iscsi Setting ( " + strerr + ")")
 		}
 		logger.Logger.Println("[Action Result]  WriteIscsiConfigObject : ", actionstatus, " , CreateVolume : ", createstatus, "PrepareIscsiSetting : ", iscsistatus)
 
@@ -79,21 +88,23 @@ func ActionHandle(args map[string]interface{}) error {
 		logger.Logger.Println("ActionHandle: Creating data volume")
 
 		createstatus, err := CreateVolume(volume)
+		lunNum := err.(string)
+		volume.LunNum, _ = strconv.Atoi(lunNum)
+
 		if !createstatus {
 			strerr := "create_volume action status=> " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
+			return nil, errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
 		}
-
 		iscsistatus, err := WriteIscsiConfigObject(volume)
 		if !iscsistatus {
 			strerr := "create_volume action status=>iscsistatus " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Iscsi Setting ( " + strerr + ")")
+			return nil, errors.New("[Cello]Can't Create Iscsi Setting ( " + strerr + ")")
 		}
 
-		logger.Logger.Println("[Action Result] : ", createstatus)
+		logger.Logger.Println("[Action Result]  createstatus  :", createstatus, " iscsistatus : ", iscsistatus)
 	}
 
-	return nil
+	return volume, nil
 }
 
 func updateVolData() {

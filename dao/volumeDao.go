@@ -7,8 +7,6 @@ import (
 	"hcc/cello/model"
 	"strconv"
 	"time"
-
-	gouuid "github.com/nu7hatch/gouuid"
 )
 
 // ReadVolume - cgs
@@ -187,15 +185,9 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 
 // CreateVolume - cgs
 func CreateVolume(args map[string]interface{}) (interface{}, error) {
-	out, err := gouuid.NewV4()
-	if err != nil {
-		logger.Logger.Println("[volumeDao]Can't Create Volume UUID : ", err)
-		return nil, err
-	}
-	uuid := out.String()
 
 	volume := model.Volume{
-		UUID:       uuid,
+		UUID:       args["uuid"].(string),
 		Size:       args["size"].(int),
 		Filesystem: args["filesystem"].(string),
 		ServerUUID: args["server_uuid"].(string),
