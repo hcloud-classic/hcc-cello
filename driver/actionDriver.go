@@ -49,7 +49,6 @@ func CreateVolActionHandler(params graphql.ResolveParams) (interface{}, error) {
 		return nil, errors.New("[Cello]Can't Create Volume : " + strerr)
 	}
 	// To-do
-	// update in memory volume data
 
 	//cross check
 	// err = handler.ReloadAllofVolInfo()
