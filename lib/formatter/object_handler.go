@@ -2,16 +2,31 @@ package formatter
 
 import (
 	"fmt"
-	"hcc/cello/lib/config"
 	"hcc/cello/model"
+	"strconv"
 	"strings"
 	"sync"
 )
 
+type Pool struct {
+	Size     string
+	Free     string
+	Capacity string
+	Health   string
+	Name     string
+}
+
+type Volpool struct {
+	PoolMap map[string]*Pool
+	lock    sync.RWMutex
+}
+
 type lun struct {
+	UUID    string
 	Path    string
 	Size    int
 	UseType string
+	Pool    string
 }
 
 // Clusterdomain is configuration object field.
@@ -26,8 +41,11 @@ type IscsiMap struct {
 	lock   sync.RWMutex
 }
 
-//VolObjectMap : For iscsi conf object
+//PoolObjectMap : For iscsi conf object, it has zpool status
 // var VolObjectMap IscsiMap
+var PoolObjectMap *Volpool
+
+//VolObjectMap : For iscsi conf object
 var VolObjectMap *IscsiMap
 
 //GlobalVolumesDB : DB info
@@ -35,22 +53,34 @@ var GlobalVolumesDB []model.Volume
 
 func init() {
 	// VolObjectMap.Domain = make(map[string]*Clusterdomain)
-	VolObjectMap = New()
+	VolObjectMap = NewVolObj()
+	PoolObjectMap = NewPoolObj()
 }
 
-//New : For iscsi config field, Generate New Object
-func New() *IscsiMap {
+//NewPoolObj : For iscsi config field, Generate New Object
+func NewPoolObj() *Volpool {
+	return &Volpool{PoolMap: make(map[string]*Pool)}
+}
+
+//NewVolObj : For iscsi config field, Generate New Object
+func NewVolObj() *IscsiMap {
 	return &IscsiMap{Domain: make(map[string]*Clusterdomain)}
 }
 
 //DevPathBuilder : For iscsi configuration, zvol path builder
 func DevPathBuilder(volume model.Volume) string {
-	return "/dev/zvol/" + volume.Pool + "/" + strings.ToUpper(volume.Filesystem) + "-" + strings.ToUpper(volume.UseType) + "-" + volume.ServerUUID
+	if strings.ToUpper(volume.UseType) == "OS" {
+		return "/dev/zvol/" + volume.Pool + "/" + strings.ToLower(volume.Filesystem) + "-" + strings.ToUpper(volume.UseType) + "-" + volume.ServerUUID
+
+	} else {
+		return "/dev/zvol/" + volume.Pool + "/" + strings.ToLower(volume.Filesystem) + "-" + strings.ToUpper(volume.UseType) + "-" + volume.ServerUUID + "-"
+
+	}
 }
 
 //VolNameBuilder : Build Vol name consist of pool and server uuid
 func VolNameBuilder(volume model.Volume) string {
-	return volume.Pool + "/" + strings.ToUpper(volume.Filesystem) + "-" + strings.ToUpper(volume.UseType) + "-" + volume.ServerUUID
+	return volume.Pool + "/" + strings.ToLower(volume.Filesystem) + "-" + strings.ToUpper(volume.UseType) + "-" + volume.ServerUUID
 }
 
 //PreLoad : vol data
@@ -60,26 +90,76 @@ func (m *IscsiMap) PreLoad() {
 			VolObjectMap.PutDomain(args.ServerUUID)
 		}
 		if VolObjectMap.Domain[args.ServerUUID] != nil {
-			VolObjectMap.SetIscsiLun(args, DevPathBuilder(args))
+			lun, _ := VolObjectMap.GetIscsiLun(args)
+			if lun.UUID == "" {
+				VolObjectMap.SetIscsiLun(args)
+			}
 		}
-		args.Pool = config.VolumeConfig.VOLUMEPOOL
+		// args.Pool = config.VolumeConfig.VOLUMEPOOL
 	}
 }
 
+//PutPool : make serveruuid map
+func (m *Volpool) PutPool(pool Pool) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	// fmt.Println("PutPool => ", pool.Name, "\n\n", m.PoolMap[pool.Name])
+	if pool.Name != "" {
+		if m.PoolMap[pool.Name] == nil {
+
+			m.PoolMap[pool.Name] = new(Pool)
+		}
+		m.PoolMap[pool.Name].Capacity = pool.Capacity
+		m.PoolMap[pool.Name].Free = pool.Free
+		m.PoolMap[pool.Name].Health = pool.Health
+		m.PoolMap[pool.Name].Size = pool.Size
+		m.PoolMap[pool.Name].Name = pool.Name
+	} else {
+		fmt.Println("Pool Obj Can't put in structure")
+	}
+}
+
+//GetPool : make serveruuid map
+func (m *Volpool) GetPool(poolname string) *Pool {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	var tempPool *Pool
+	if poolname != "" && m.PoolMap[poolname] == nil {
+		tempPool = m.PoolMap[poolname]
+	} else {
+		fmt.Println("Pool Obj Can't put in structure")
+		return nil
+	}
+	return tempPool
+}
+
 //SetIscsiLun : local var has iscsi config(Target Name , Lun number)
-func (m *IscsiMap) SetIscsiLun(volume model.Volume, volPath string) {
+func (m *IscsiMap) SetIscsiLun(volume model.Volume) string {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	if volume.ServerUUID != "" && volume.UseType != "" {
+
 		var templLun lun
-		templLun.Path = volPath
+		var lunNuber int
+		templLun.UUID = volume.UUID
+		templLun.Path = DevPathBuilder(volume)
+
 		templLun.Size = volume.Size
 		templLun.UseType = volume.UseType
+		templLun.Pool = volume.Pool
+		lunNuber = 0
+
+		for range m.Domain[volume.ServerUUID].Lun {
+			lunNuber++
+		}
+		if strings.ToUpper(volume.UseType) == "DATA" {
+			templLun.Path += strconv.Itoa(lunNuber)
+		}
+
 		m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun, templLun)
-	} else {
-		// fmt.Println("object handler set iscsi error Check filesystem")
-		fmt.Println("object handler put val err")
+		return strconv.Itoa(lunNuber)
 	}
+	return "object handler Setiscsi val err"
 }
 
 //RemoveIscsiLun : local var has iscsi config(Target Name , Lun number)
@@ -88,7 +168,10 @@ func (m *IscsiMap) RemoveIscsiLun(volume model.Volume, lunOrder int) {
 	defer m.lock.Unlock()
 	if volume.ServerUUID != "" && volume.Filesystem != "" {
 		if m.Domain[volume.ServerUUID] != nil {
-			m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun[:lunOrder], m.Domain[volume.ServerUUID].Lun[lunOrder+1:]...)
+			if lunOrder < len(m.Domain[volume.ServerUUID].Lun) {
+
+				m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun[:lunOrder], m.Domain[volume.ServerUUID].Lun[lunOrder+1:]...)
+			}
 			// All lun and Domain map delete
 			// m.Domain[volume.ServerUUID].Lun = nil
 			// delete(m.Domain, volume.ServerUUID)
@@ -107,21 +190,23 @@ func (m *IscsiMap) GetIscsiData(serveruuid string) *Clusterdomain {
 		tempVal = m.Domain[serveruuid]
 	} else {
 		fmt.Println("object handler get val err")
+		return nil
 	}
 	return tempVal
 }
-
-// GetIscsiLunNum : Retrun Lun number
-func (m *IscsiMap) GetIscsiLunNum(serveruuid string) *Clusterdomain {
+func (m *IscsiMap) GetIscsiLun(volume model.Volume) (lun, string) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	var tempVal *Clusterdomain
-	if serveruuid != "" && m.Domain[serveruuid] != nil {
-		tempVal = m.Domain[serveruuid]
-	} else {
-		fmt.Println("object handler get val err")
+	var tempVal lun
+	if volume.ServerUUID != "" && m.Domain[volume.ServerUUID] != nil {
+		for i, args := range m.Domain[volume.ServerUUID].Lun {
+			if args.UUID == volume.UUID {
+				tempVal = args
+				return tempVal, strconv.Itoa(i)
+			}
+		}
 	}
-	return tempVal
+	return tempVal, "GetIscsiLun : Can't find lun"
 }
 
 //PutDomain : make serveruuid map
@@ -131,8 +216,6 @@ func (m *IscsiMap) PutDomain(serveruuid string) {
 	if serveruuid != "" && m.Domain[serveruuid] == nil {
 		m.Domain[serveruuid] = new(Clusterdomain)
 		m.Domain[serveruuid].TargetName = serveruuid
-	} else {
-		fmt.Println("object handler put val err > ", serveruuid)
 	}
 }
 

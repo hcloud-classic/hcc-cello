@@ -86,6 +86,8 @@ func parseVolumeHandle() {
 	}
 
 	VolumeConfig = volumeHandle{}
+
+	//Will be Deprecated
 	VolumeConfig.VOLUMEPOOL, err = config.VolumeConfig.String("volume_pool")
 	if err != nil {
 		logger.Logger.Panicln(err)

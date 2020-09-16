@@ -6,7 +6,12 @@ import (
 
 func getVolumeDB() error {
 
-	err := handler.ReloadAllofVolInfo()
+	err := handler.ReloadPoolObject()
+	if err != nil {
+		return err
+	}
+
+	err = handler.ReloadAllofVolInfo()
 	if err != nil {
 		return err
 	}

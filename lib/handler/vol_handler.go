@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"fmt"
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/formatter"
 	"hcc/cello/lib/logger"
@@ -19,67 +21,129 @@ type ZSystem struct {
 
 var zsysteminfo ZSystem
 
-func addVolObejct(volume model.Volume) {
-	if formatter.VolObjectMap.Domain[volume.ServerUUID] == nil {
+//ReloadPoolObject : Reload Pool status
+func ReloadPoolObject() error {
+	act := "zpool list -H -o name"
+	cmd := exec.Command("/bin/bash", "-c", act)
+	result, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("Can't exec zpool name ", err)
+		return err
+	}
+
+	var poolobj formatter.Pool
+	for _, args := range strings.Split(string(result), "\n") {
+		if args != "" {
+			act = "zpool list -H -o free " + args
+			cmd = exec.Command("/bin/bash", "-c", act)
+			result, err = cmd.CombinedOutput()
+			if err != nil {
+				fmt.Println("Can't exec zpool free : ", args, err)
+				return err
+
+			}
+			poolobj.Free = string(result)
+
+			act = "zpool list -H -o capacity " + args
+			cmd = exec.Command("/bin/bash", "-c", act)
+			result, err = cmd.CombinedOutput()
+			if err != nil {
+				fmt.Println("Can't exec zpool capacity : ", args, err)
+				return err
+
+			}
+			poolobj.Capacity = string(result)
+
+			act = "zpool list -H -o size " + args
+			cmd = exec.Command("/bin/bash", "-c", act)
+			result, err = cmd.CombinedOutput()
+			if err != nil {
+				fmt.Println("Can't exec zpool size ", args, err)
+				return err
+
+			}
+			poolobj.Size = string(result)
+
+			act = "zpool list -H -o health " + args
+			cmd = exec.Command("/bin/bash", "-c", act)
+			result, err = cmd.CombinedOutput()
+			if err != nil {
+				fmt.Println("Can't exec zpool health ", args, err)
+				return err
+
+			}
+			poolobj.Health = string(result)
+
+			poolobj.Name = args
+			fmt.Println("pool => ", poolobj)
+			formatter.PoolObjectMap.PutPool(poolobj)
+		}
+	}
+	return nil
+
+}
+
+func addVolObejct(volume model.Volume) string {
+	var lunNum string
+	if formatter.VolObjectMap.Domain[volume.ServerUUID] == nil && strings.ToUpper(volume.UseType) != "DATA" {
 		formatter.VolObjectMap.PutDomain(volume.ServerUUID)
 	}
 	if formatter.VolObjectMap.Domain[volume.ServerUUID] != nil {
-		formatter.VolObjectMap.SetIscsiLun(volume, formatter.DevPathBuilder(volume))
+		lunNum = formatter.VolObjectMap.SetIscsiLun(volume)
 	}
+	return lunNum
 }
 
 //To do
-func removeVolObejct(volume model.Volume) {
-	// if formatter.VolObjectMap.Domain[volume.ServerUUID] == nil {
-	// 	formatter.VolObjectMap.PutDomain(volume.ServerUUID)
-	// }
-	// if formatter.VolObjectMap.Domain[volume.ServerUUID] != nil {
-	// 	formatter.VolObjectMap.SetIscsiLun(volume, formatter.DevPathBuilder(volume))
-	// }
+func removeVolObejct(volume model.Volume, lunNum int) {
+
+	if formatter.VolObjectMap.Domain[volume.ServerUUID] != nil {
+		formatter.VolObjectMap.RemoveIscsiLun(volume, lunNum)
+	}
 }
 
 // CreateVolume : Creatte Volume
 func CreateVolume(volume model.Volume) (bool, interface{}) {
-	volumePoolCheck()
-	volume.Pool = config.VolumeConfig.VOLUMEPOOL
-	volcheck, err := QuotaCheck(volume.ServerUUID)
-	logger.Logger.Println("CreateVolume :QuotaCheck")
-	if !volcheck {
-		logger.Logger.Println("CreateVolume : check Faild", err)
-		return volcheck, err
+	lunNum := addVolObejct(volume)
+	if lunNum == "" {
+		strerr := "Create ZFS(Lun Numbering) : Faild )"
+		logger.Logger.Println(strerr)
+		lunInt, _ := strconv.Atoi(lunNum)
+		removeVolObejct(volume, lunInt)
+		return false, errors.New("[Cello]  : " + strerr)
 	}
+	volume.LunNum, _ = strconv.Atoi(lunNum)
 	if volume.UseType == "os" {
 		createcheck, err := clonezvol(volume)
 		if !createcheck {
+			lunInt, _ := strconv.Atoi(lunNum)
+			removeVolObejct(volume, lunInt)
 			logger.Logger.Println("Create ZFS(OS) : Faild")
 			return false, err
 		}
 	} else {
 		createcheck, err := createzvol(volume)
 		if !createcheck {
+			lunInt, _ := strconv.Atoi(lunNum)
+			removeVolObejct(volume, lunInt)
 			logger.Logger.Println("Create ZFS(DATA) : Faild")
 			return false, err
 		}
 	}
-	addVolObejct(volume)
-	logger.Logger.Println("CreateVolume :After VolType")
 
-	// setquota(ServerUUID, Size)
-
-	return true, err
+	return true, lunNum
 
 }
 
 func createzvol(volume model.Volume) (bool, interface{}) {
 
-	// volname := FileSystem + "-" + VolType + "-" + ServerUUID
-
-	volname := formatter.VolNameBuilder(volume)
+	volname := formatter.VolNameBuilder(volume) + "-" + strconv.Itoa(volume.LunNum)
 	convertSize := strconv.Itoa(volume.Size) + "G"
 	volblocksize := "volblocksize=" + "4096"
 	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, volname)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
+		logger.Logger.Println(result, " ", err, " : ", cmd)
 		return false, err
 	}
 	return true, result
@@ -130,15 +194,26 @@ func setquota(ServerUUID string, Size int) (bool, interface{}) {
 	return true, err
 }
 
-//Deprecate
-func volumePoolCheck() {
-	zsysteminfo.PoolName = config.VolumeConfig.VOLUMEPOOL
-	// cmd := exec.Command("hostname")
-	// result, err := cmd.CombinedOutput()
-	// zsysteminfo.PoolName = strings.TrimSpace(string(result))
-	if len(zsysteminfo.PoolName) == 0 {
-		logger.Logger.Println("Please configuration volume management pool (/etc/hcc/cello/cello.conf)")
+func AvailablePoolCheck() string {
+	min := "0"
+	var poolname string
+	for _, args := range formatter.PoolObjectMap.PoolMap {
+		tmpa, _ := strconv.Atoi(min)
+		tmpstr := strings.Trim(strings.TrimSpace(args.Free), "G")
+		tmpb, _ := strconv.Atoi(tmpstr)
+
+		if tmpa <= tmpb {
+			min = args.Free
+			poolname = args.Name
+
+		}
 	}
+
+	if poolname == "" {
+		logger.Logger.Println("There Is No Available Pool")
+	}
+
+	return poolname
 }
 
 //QuotaCheck : Zfs Available Quota check
