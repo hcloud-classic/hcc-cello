@@ -201,14 +201,11 @@ func AvailablePoolCheck() string {
 		tmpa, _ := strconv.Atoi(min)
 		tmpstr := strings.Trim(strings.TrimSpace(args.Free), "G")
 		tmpb, _ := strconv.Atoi(tmpstr)
-
 		if tmpa <= tmpb {
 			min = args.Free
 			poolname = args.Name
-
 		}
 	}
-
 	if poolname == "" {
 		logger.Logger.Println("There Is No Available Pool")
 	}

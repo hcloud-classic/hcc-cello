@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"hcc/cello/lib/formatter"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
@@ -17,14 +16,14 @@ func iscsiServiceHandler() (bool, interface{}) {
 	if strings.Contains(string(result), "ctld is not running") {
 		cmd = exec.Command("service", "ctld", "start")
 		result, err = cmd.CombinedOutput()
-		fmt.Println("start")
-
+		logger.Logger.Println("Iscsi Service start")
 	} else {
 		cmd := exec.Command("service", "ctld", "reload")
 		result, err = cmd.CombinedOutput()
-		fmt.Println("reload")
+		logger.Logger.Println("Iscsi Service reload")
 	}
 	if err != nil {
+		logger.Logger.Println(err)
 		return false, err
 	}
 	return true, result
@@ -43,7 +42,7 @@ func WriteIscsiConfigObject(volume model.Volume) (bool, interface{}) {
 	}()
 	input := iscsiportal
 	for _, args := range formatter.VolObjectMap.Domain {
-		input += configBuilder(volume, args)
+		input = input + "\n" + configBuilder(volume, args)
 	}
 	_, err = file.WriteString(input)
 	if err != nil {
@@ -64,18 +63,21 @@ func configBuilder(volume model.Volume, domain *formatter.Clusterdomain) string 
 	targetDomain := iscsitarget
 	for i, args := range domain.Lun {
 		singleLun := iscsilun
-		lunname := strings.Split(formatter.VolNameBuilder(volume), "/")[1]
-		// if strings.Contains(strings.ToUpper(args.UseType), "DATA") {
-		lunname = lunname + "-" + strconv.Itoa(i)
-		// }
+		// lunname := strings.Split(formatter.VolNameBuilder(volume), "/")[1]
+		lunname := args.Name
+		volumePath := args.Path
+		// volumePath := formatter.DevPathBuilder(volume)
+		if strings.Contains(strings.ToUpper(args.UseType), "DATA") {
+			lunname += "-" + strconv.Itoa(i)
+		}
 
 		singleLun = strings.Replace(singleLun, "LUN_NAME", lunname, -1)
 		singleLun = strings.Replace(singleLun, "CELLO_PXE_CONF_ISCSI_LUN_ORDER", strconv.Itoa(i), -1)
-		singleLun = strings.Replace(singleLun, "CELLO_PXE_CONF_ISCSI_ZVOLUME_PATH", formatter.DevPathBuilder(volume), -1)
+		singleLun = strings.Replace(singleLun, "CELLO_PXE_CONF_ISCSI_ZVOLUME_PATH", volumePath, -1)
 		singleLun = strings.Replace(singleLun, "CELLO_PXE_CONF_ISCSI_ZVOLUME_SIZE", strconv.Itoa(args.Size)+"G", -1)
 
-		lunList += singleLun + "\n "
-		targetLunList += "lun " + strconv.Itoa(i) + " " + lunname + " "
+		lunList = lunList + singleLun + "\n "
+		targetLunList = targetLunList + "lun " + strconv.Itoa(i) + " " + lunname + " "
 	}
 
 	targetDomain = strings.Replace(targetDomain, "CELLO_PXE_CONF_ISCSI_TARGET_DOMAIN", domain.TargetName, -1)

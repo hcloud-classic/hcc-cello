@@ -27,6 +27,7 @@ type lun struct {
 	Size    int
 	UseType string
 	Pool    string
+	Name    string
 }
 
 // Clusterdomain is configuration object field.
@@ -147,6 +148,7 @@ func (m *IscsiMap) SetIscsiLun(volume model.Volume) string {
 		templLun.Size = volume.Size
 		templLun.UseType = volume.UseType
 		templLun.Pool = volume.Pool
+		templLun.Name = strings.Split(VolNameBuilder(volume), "/")[1]
 		lunNuber = 0
 
 		for range m.Domain[volume.ServerUUID].Lun {
