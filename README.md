@@ -226,6 +226,15 @@ size : none
 network_ip : (a.b.c.d) 대역에서 c값만 사용 
 ```
 
+`DATA`
+
+```shell
+server_uuid : uuid
+use_type : data
+size : volume size
+network_ip : (a.b.c.d) 대역에서 c값만 사용 
+```
+
 
 
 
@@ -316,7 +325,7 @@ mutation _ {
 }
 
 mutation _ {
-  create_volume(size:10, filesystem:"centos", server_uuid:"111155fd-08ea-4ede-4e03-f2220724f11d", use_type:"os", user_uuid:"ush",lun_num:0,gateway_ip:"172.18.1.1",pool:"master",network_ip:"172.18.1.1") {
+  create_volume(size:10, filesystem:"centos", server_uuid:"111155fd-08ea-4ede-4e03-f2220724f11d", use_type:"data", user_uuid:"ush",lun_num:0,gateway_ip:"172.18.1.1",pool:"master",network_ip:"172.18.1.1") {
     uuid
     size
     filesystem

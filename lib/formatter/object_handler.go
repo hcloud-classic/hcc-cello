@@ -164,6 +164,7 @@ func (m *IscsiMap) SetIscsiLun(volume model.Volume) string {
 	return "object handler Setiscsi val err"
 }
 
+//To-Do : Remove Volume sequence
 //RemoveIscsiLun : local var has iscsi config(Target Name , Lun number)
 func (m *IscsiMap) RemoveIscsiLun(volume model.Volume, lunOrder int) {
 	m.lock.Lock()
@@ -171,8 +172,29 @@ func (m *IscsiMap) RemoveIscsiLun(volume model.Volume, lunOrder int) {
 	if volume.ServerUUID != "" && volume.Filesystem != "" {
 		if m.Domain[volume.ServerUUID] != nil {
 			if lunOrder < len(m.Domain[volume.ServerUUID].Lun) {
+				if strings.ToUpper(volume.UseType) == "DATA" {
+					m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun[:lunOrder], m.Domain[volume.ServerUUID].Lun[lunOrder+1:]...)
 
-				m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun[:lunOrder], m.Domain[volume.ServerUUID].Lun[lunOrder+1:]...)
+				}
+			}
+			// All lun and Domain map delete
+			// m.Domain[volume.ServerUUID].Lun = nil
+			// delete(m.Domain, volume.ServerUUID)
+		}
+	} else {
+		fmt.Println("object handler put val err")
+	}
+}
+
+//To Do : Remove Volume sequence
+//InsertIscsiLun : local var has iscsi config(Target Name , Lun number)
+func (m *IscsiMap) InsertIscsiLun(volume model.Volume, lunOrder int) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if volume.ServerUUID != "" && volume.Filesystem != "" {
+		if m.Domain[volume.ServerUUID] != nil {
+			if lunOrder < len(m.Domain[volume.ServerUUID].Lun) {
+				m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun[:lunOrder+1], m.Domain[volume.ServerUUID].Lun[lunOrder:]...)
 			}
 			// All lun and Domain map delete
 			// m.Domain[volume.ServerUUID].Lun = nil
