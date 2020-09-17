@@ -6,31 +6,10 @@ import (
 	"github.com/Terry-Mao/goconf"
 )
 
-// var iscsiconf = fomatter.New()
 var conf = goconf.New()
 var config = celloConfig{}
 var err error
 
-// func loadIscsiDB(){
-// 	celloParams := make(map[string]interface{})
-// 	celloParams["row"] = 0
-// 	celloParams["page"] = 0
-// 	var volumes []model.Volume
-// 	volumes := ReadVolumeAll(celloParams)
-// 	body, _ := json.Marshal(volumes)
-// 	var obj map[string]interface{}
-// 	json.Unmarshal([]byte(body), &obj)
-
-// 	// Make a custom formatter with indent set
-// 	f := colorjson.NewFormatter()
-// 	f.Indent = 4
-
-// 	// Marshall the Colorized JSON
-// 	s, _ := f.Marshal(obj)
-// 	// fmt.Println(string(s))
-// 	logger.Logger.Println("doHcc Action [", string(s), "]")
-
-// }
 func parseMysql() {
 
 	config.MysqlConfig = conf.Get("mysql")
@@ -64,6 +43,18 @@ func parseMysql() {
 		logger.Logger.Panicln(err)
 	}
 
+}
+
+func parseGrpc() {
+	config.GrpcConfig = conf.Get("grpc")
+	if config.GrpcConfig == nil {
+		logger.Logger.Panicln("no grpc section")
+	}
+
+	Grpc.Port, err = config.GrpcConfig.Int("port")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
 }
 
 func parseHTTP() {
@@ -117,6 +108,7 @@ func Parser() {
 	}
 
 	parseMysql()
+	parseGrpc()
 	parseHTTP()
 	parseVolumeHandle()
 }
