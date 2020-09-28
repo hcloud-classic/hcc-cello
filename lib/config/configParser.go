@@ -86,10 +86,6 @@ func parseVolumeHandle() {
 
 	VolumeConfig.SupportOS, err = config.VolumeConfig.Strings("support_os", " ")
 	logger.Logger.Println("Support Os List[", VolumeConfig.SupportOS, "] : ")
-	// for _, args := range VolumeConfig.SupportOS {
-	// 	logger.Logger.Println("Support Os List[", VolumeConfig.SupportOS, args, "]")
-
-	// }
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
@@ -98,7 +94,11 @@ func parseVolumeHandle() {
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
-
+	VolumeConfig.IscsiDiscoveryAddress, err = config.VolumeConfig.Strings("iscsi_discovery_address", " ")
+	logger.Logger.Println("IscsiDiscoveryAddress[", VolumeConfig.IscsiDiscoveryAddress, "] : ")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
 }
 
 // Parser : Parse config file

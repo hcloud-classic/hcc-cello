@@ -1,6 +1,21 @@
 //// url
 http://localhost:8001/graphql
 
+
+{
+  "volume": {
+    "size": "100G",
+    "filesystem": "centos",
+    "serverUUID": "079ae634-92c6-42cd-504d-9cb6bd382eb8",
+    "useType": "os",
+    "userUUID": "aaaaa-aaaa-aaaa-aaaa-aaa",
+    "networkIP": "172.18.1.1",
+    "gatewayIp": "172.19.0.1",
+    "pool": "master"
+  }
+}
+
+
 //// volume
 
 // create

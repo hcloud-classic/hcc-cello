@@ -2,6 +2,7 @@ package dao
 
 import (
 	"errors"
+	hccerr "hcc/cello/lib/errors"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
 	"hcc/cello/model"
@@ -184,36 +185,22 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 }
 
 // CreateVolume - cgs
-func CreateVolume(args map[string]interface{}) (interface{}, error) {
-
-	volume := model.Volume{
-		UUID:       args["uuid"].(string),
-		Size:       args["size"].(int),
-		Filesystem: args["filesystem"].(string),
-		ServerUUID: args["server_uuid"].(string),
-		UseType:    args["use_type"].(string),
-		UserUUID:   args["user_uuid"].(string),
-		LunNum:     args["lun_num"].(int),
-		Pool:       args["pool"].(string),
-		NetworkIP:  args["network_ip"].(string),
-	}
-
+func CreateVolume(in *model.Volume) (uint64, string) {
 	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid,lun_num , pool,created_at) values (?, ?, ?, ?, ?, ?, ?, ?, now())"
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
 		logger.Logger.Println(err.Error())
-		return nil, err
 	}
 	defer func() {
 		_ = stmt.Close()
 	}()
-	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID, volume.LunNum, volume.Pool)
+	_, err = stmt.Exec(in.UUID, in.Size, in.Filesystem, in.ServerUUID, in.UseType, in.UserUUID, in.LunNum, in.Pool)
 	if err != nil {
-		logger.Logger.Println("[volumeDao]Can't Update DB : ", result, err)
-		return nil, err
+		errStr := "[volumeDao]Can't Update DB: " + err.Error()
+		return hccerr.CelloSQLOperationFail, errStr
 	}
 
-	return volume, nil
+	return 0, ""
 }
 
 func checkUpdateVolumeArgs(args map[string]interface{}) bool {
