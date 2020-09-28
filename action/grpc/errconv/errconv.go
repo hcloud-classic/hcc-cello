@@ -1,8 +1,8 @@
 package errconv
 
 import (
-	errg "hcc/violin/action/grpc/pb/rpcmsgType"
-	errh "hcc/violin/lib/errors"
+	errg "hcc/cello/action/grpc/pb/rpcmsgType"
+	errh "hcc/cello/lib/errors"
 )
 
 func GrpcToHcc(eg *errg.HccError) *errh.HccError {

@@ -16,11 +16,21 @@ var RC = &RPCClient{}
 
 // Init : Initialize clients of gRPC
 func Init() error {
+	// err := initFlute()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = initHarp()
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
 
 // End : Close connections of gRPC clients
 func End() {
-
+	// closeHarp()
+	// closeFlute()
 }

@@ -105,6 +105,7 @@ func removeVolObejct(volume model.Volume, lunNum int) {
 // CreateVolume : Creatte Volume
 func CreateVolume(volume model.Volume) (bool, interface{}) {
 	lunNum := addVolObejct(volume)
+	logger.Logger.Println("Codex :\n", volume)
 	if lunNum == "" {
 		strerr := "Create ZFS(Lun Numbering) : Faild )"
 		logger.Logger.Println(strerr)
@@ -158,12 +159,14 @@ func clonezvol(volume model.Volume) (bool, interface{}) {
 			break
 		}
 	}
+
 	cmd := exec.Command("zfs", "clone", originVolName, volname)
-	logger.Logger.Println("clonezvol : [", originVolName, " To ", volname, "]")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, err
 	}
+	logger.Logger.Println("clonezvol : [", originVolName, " To ", volname, "]")
+
 	return true, result
 }
 

@@ -31,7 +31,7 @@ delete_volume_attachment
 
 
 
-### Exam Query
+### ~~Exam Query~~
 
 ```go
 // Volume create
@@ -215,25 +215,76 @@ struct domaintarget{
 
 
 
-### create_volume
+### CreateVolume
 
-`OS`
+> /RpcCello.Cello/CreateVolume
+
+`Parameter`
 
 ```shell
-server_uuid : uuid
+string    UUID = 1; 
+string    size = 2; //on demand ex) 100G
+string    filesystem = 3; //mandatory ex) centos, ubuntu, debian
+string    serverUUID = 4; //mandatory
+string    use_type = 5; //mandatory ex)os, data
+string    userUUID = 6; //mandatory
+google.protobuf.Timestamp created_at = 7;
+string    network_IP = 8; //mandatory ex) 172.18.1.1
+string    gateway_ip = 9; //mandatory ex) 172.18.1.1
+string    pool = 10; //mandatory
+int32        lun = 11;
+```
+
+
+
+#### Example
+
+##### Request
+
+`OS Volume Create`
+
+```shell
+size : 100G // 고정 100G를 사용하기 때문에 필요 X
+filesystem : centos
+serverUUID : xxxx-xxx-xxx-xx-xxx
 use_type : os
-size : none
-network_ip : (a.b.c.d) 대역에서 c값만 사용 
+userUUID : xxx-xxx-xx-xxxx-xx
+network_IP : 172.18.1.1 // DHCP IP
+gateway_ip : 172.18.1.1 // expose deployment ISCSI IP
+pool : volmgmt-1 // User Quota
+lun : //생성후 리턴
 ```
 
 `DATA`
 
 ```shell
-server_uuid : uuid
+size : 1024G // 필수
+serverUUID : xxxx-xxx-xxx-xx-xxx
 use_type : data
-size : volume size
-network_ip : (a.b.c.d) 대역에서 c값만 사용 
+userUUID : xxx-xxx-xx-xxxx-xx
+network_IP : 172.18.1.1 // DHCP IP
+gateway_ip : 172.18.1.1 // expose deployment ISCSI IP
+pool : volmgmt-1 // User Quota
+lun : //생성후 리턴
 ```
+
+단, 하단의 상황에 따라 몇가지 제한 사항이 존재.
+
+* 서버 생성시 DATA Volume 추가
+
+  하단 내용 viola추가 개발 해야됨
+
+  ```shell
+  서버 생성시 추가된 볼륨은 Viola에 의해 관리자가 지정한 디렉토리로 자동 마운트됨.
+  ```
+
+  
+
+* 서버 생성후 DATA Volume 추가
+
+
+
+##### Response
 
 
 
