@@ -63,7 +63,11 @@ const (
 	loginFailed
 
 	// cello specific
-
+	volumehandlerError
+	storagepoolError
+	createvolumeError
+	preparepxeError
+	writeiscsiError
 	// violin-scheduler specific
 
 	// flute specific
@@ -122,7 +126,11 @@ var actionList = [...]string{
 	"Login failed -> ",
 
 	// cello specific
-
+	"volumehandlerError -> ",
+	"storagepoolError -> ",
+	"createvolumeError -> ",
+	"preparepxeError -> ",
+	"writeiscsiError -> ",
 	// violin-scheduler specific
 
 	// flute specific
@@ -238,6 +246,12 @@ func (es *HccErrorStack) Pop() *HccError {
 
 func (es *HccErrorStack) Push(err *HccError) {
 	*es = append(*es, *err)
+}
+
+func (es *HccErrorStack) AppendStack(err *HccErrorStack) {
+	for _, args := range *err {
+		*es = append(*es, args)
+	}
 }
 
 // Dump() will clean stack
