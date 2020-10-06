@@ -6,6 +6,10 @@ PKG_LIST := $(shell go list ${ROOT_PROJECT_NAME}/${PROJECT_NAME}/...)
 
 all: build
 
+service_create : 
+
+
+
 copy_dir: ## Copy project folder to GOPATH
 	@mkdir -p $(GOPATH)/src/${ROOT_PROJECT_NAME}
 	@rm -rf $(GOPATH)/src/${ROOT_PROJECT_NAME}/${PROJECT_NAME}

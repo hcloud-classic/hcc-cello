@@ -65,6 +65,7 @@ type HccAction = rpcmsgType.HccAction
 type Action = rpcmsgType.Action
 type Control = rpcmsgType.Control
 type Controls = rpcmsgType.Controls
+type ScheduleNodes = rpcmsgType.ScheduleNodes
 
 // IPMI
 type PowerState int32
