@@ -2,13 +2,11 @@ package client
 
 import (
 	"hcc/cello/action/grpc/pb/rpcflute"
-	"hcc/cello/action/grpc/pb/rpcharp"
 )
 
 // RPCClient : Struct type of gRPC clients
 type RPCClient struct {
 	flute rpcflute.FluteClient
-	harp  rpcharp.HarpClient
 }
 
 // RC : Exported variable pointed to RPCClient

@@ -1,7 +1,6 @@
 package grpcsrv
 
 import (
-	"fmt"
 	pb "hcc/cello/action/grpc/pb/rpccello"
 	"hcc/cello/dao"
 	hccerr "hcc/cello/lib/errors"
@@ -12,7 +11,6 @@ import (
 	"strings"
 
 	gouuid "github.com/nu7hatch/gouuid"
-	// "github.com/golang/protobuf/ptypes"
 )
 
 func reformatPBReqtoPBVolume(contents *pb.ReqVolumeHandler) *pb.Volume {
@@ -28,7 +26,7 @@ func reformatPBReqtoPBVolume(contents *pb.ReqVolumeHandler) *pb.Volume {
 		GatewayIp:  pbVolume.GetGatewayIp(),
 		Pool:       pbVolume.GetPool(),
 		Lun:        int64(pbVolume.GetLun()),
-		// Action    : mo
+		Action:     pbVolume.GetAction(),
 	}
 }
 
@@ -70,7 +68,6 @@ func createAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 
 		createstatus, err := handler.CreateVolume(*volume)
 		if !createstatus {
-			// strerr := "create_volume action status=>createstatus " + fmt.Sprintln(err)
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError})
 			goto ERROR
 		}
@@ -79,16 +76,14 @@ func createAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 
 		actionstatus, err := handler.PreparePxeSetting(volume.ServerUUID, volume.UseType, volume.NetworkIP, volume.GatewayIP)
 		if !actionstatus {
-			// strerr := "create_volume action status=>actionstatus " + fmt.Sprintln(err)
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalPreparePxeError})
 			goto ERROR
 		}
 
 		iscsistatus, err := handler.WriteIscsiConfigObject(*volume)
 		if !iscsistatus {
-			// strerr := "create_volume action status=>iscsistatus " + fmt.Sprintln(err)
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalWriteIscsiError})
-
+			goto ERROR
 		}
 		logger.Logger.Println("[Action Result]  WriteIscsiConfigObject : ", actionstatus, " , CreateVolume : ", createstatus, "PrepareIscsiSetting : ", iscsistatus)
 
@@ -102,15 +97,13 @@ func createAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 		volume.LunNum, _ = strconv.Atoi(lunNum)
 
 		if !createstatus {
-			// strerr := "create_volume action status=>createstatus " + fmt.Sprintln(err)
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError})
 			goto ERROR
 		}
 		iscsistatus, err := handler.WriteIscsiConfigObject(*volume)
 		if !iscsistatus {
-			// strerr := "create_volume action status=>iscsistatus " + fmt.Sprintln(err)
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalWriteIscsiError})
-
+			goto ERROR
 		}
 
 		logger.Logger.Println("[Action Result]  createstatus  :", createstatus, " iscsistatus : ", iscsistatus)
@@ -122,8 +115,7 @@ func createAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 
 ERROR:
 	errStack.Push(&hccerr.HccError{
-		ErrCode: hccerr.CelloInternalVolumeHandleError,
-		ErrText: "VolumeHandler(): Failed to handle volume",
+		ErrText: "createAction(): Failed to create volume",
 	})
 
 	return errStack.ConvertReportForm()
@@ -132,53 +124,60 @@ ERROR:
 
 //VolumeHandler : Manipulate Volume Create
 func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorStack) {
-
+	var err error
+	var uuid string
 	errStack := hccerr.NewHccErrorStack()
-	// pbVolume := contents.GetVolume()
 	var modelVolume model.Volume
 	reformatPBReqtoModelVolume(contents, &modelVolume)
-	fmt.Println("Debug model\n", modelVolume)
-
 	retPbVolume := reformatPBReqtoPBVolume(contents)
-
-	fmt.Println("Debug retPbVolume\n", retPbVolume)
-
 	logger.Logger.Println("Resolving: create_volume")
 	if retPbVolume.ServerUUID == "" || retPbVolume.UserUUID == "" {
-		// strerr := "Param args missing => (" + ")"
-
-	}
-
-	err := handler.ReloadPoolObject()
-	if err != nil {
-		// strerr := "Can't reload Zpool  => (" + fmt.Sprintln(err) + ")"
-
-	}
-
-	out, err := gouuid.NewV4()
-	if err != nil {
-		logger.Logger.Println("[VolumeHandler]Can't Create Volume UUID : ", err)
-	}
-	uuid := out.String()
-
-	modelVolume.UUID = uuid
-	retPbVolume.UUID = modelVolume.UUID
-	tempErr := createAction(retPbVolume, &modelVolume)
-	if tempErr != nil {
-		logger.Logger.Println(tempErr)
-		// errStack.Push(tempErr.ConvertReportForm())
-		errStack.AppendStack(tempErr)
-	}
-	retPbVolume.Lun = int64(modelVolume.LunNum)
-
-	errcode, errstr := dao.CreateVolume(&modelVolume)
-	if errstr == "" {
-		errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr})
+		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID + "\n User : " + retPbVolume.UserUUID + "}"})
 		goto ERROR
 	}
 
-	logger.Logger.Println("[Create Volume] Success ")
+	err = handler.ReloadPoolObject()
+	if err != nil {
+		errStack.Push(&hccerr.HccError{ErrText: "Can't Reload Object"})
+		goto ERROR
+	}
 
+	switch strings.ToLower(retPbVolume.Action) {
+	case "create":
+
+		out, err := gouuid.NewV4()
+		if err != nil {
+			logger.Logger.Println("[VolumeHandler]Can't Create Volume UUID : ", err)
+			goto ERROR
+		}
+		uuid = out.String()
+
+		modelVolume.UUID = uuid
+		retPbVolume.UUID = modelVolume.UUID
+
+		tempErr := createAction(retPbVolume, &modelVolume)
+		if tempErr != nil {
+			logger.Logger.Println(tempErr)
+			errStack.AppendStack(tempErr)
+			goto ERROR
+		}
+		retPbVolume.Lun = int64(modelVolume.LunNum)
+
+		errcode, errstr := dao.CreateVolume(&modelVolume)
+		if errstr != "" {
+			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr})
+			goto ERROR
+		}
+
+		logger.Logger.Println("[Create Volume] Success ")
+
+	case "read":
+	case "update":
+	case "delete":
+	default:
+		errstr := "Invalid Action : " + retPbVolume.Action
+		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: errstr})
+	}
 	return retPbVolume, errStack.ConvertReportForm()
 
 ERROR:
