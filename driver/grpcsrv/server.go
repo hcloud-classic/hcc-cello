@@ -27,6 +27,7 @@ func reformatPBReqtoPBVolume(contents *pb.ReqVolumeHandler) *pb.Volume {
 		Pool:       pbVolume.GetPool(),
 		Lun:        int64(pbVolume.GetLun()),
 		Action:     pbVolume.GetAction(),
+		CreatedAt:  pbVolume.GetCreatedAt(),
 	}
 }
 
@@ -139,6 +140,7 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 	err = handler.ReloadPoolObject()
 	if err != nil {
 		errStack.Push(&hccerr.HccError{ErrText: "Can't Reload Object"})
+		logger.Logger.Println("ReloadPoolObject", errStack)
 		goto ERROR
 	}
 
@@ -156,8 +158,8 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 		retPbVolume.UUID = modelVolume.UUID
 
 		tempErr := createAction(retPbVolume, &modelVolume)
-		if tempErr != nil {
-			logger.Logger.Println(tempErr)
+		if tempErr.Len() > 0 {
+			logger.Logger.Println("Error createAction: ", tempErr)
 			errStack.AppendStack(tempErr)
 			goto ERROR
 		}
@@ -165,6 +167,7 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 
 		errcode, errstr := dao.CreateVolume(&modelVolume)
 		if errstr != "" {
+			logger.Logger.Println("Error DB : ", errstr)
 			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr})
 			goto ERROR
 		}
@@ -178,6 +181,7 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 		errstr := "Invalid Action : " + retPbVolume.Action
 		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: errstr})
 	}
+	logger.Logger.Println("retPbVolume : ", retPbVolume)
 	return retPbVolume, errStack.ConvertReportForm()
 
 ERROR:
