@@ -17,7 +17,7 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SchedulerClient interface {
-	VolumeHandler(ctx context.Context, in *ReqScheduleHandler, opts ...grpc.CallOption) (*ResScheduleHandler, error)
+	ScheduleHandler(ctx context.Context, in *ReqScheduleHandler, opts ...grpc.CallOption) (*ResScheduleHandler, error)
 }
 
 type schedulerClient struct {
@@ -28,9 +28,9 @@ func NewSchedulerClient(cc grpc.ClientConnInterface) SchedulerClient {
 	return &schedulerClient{cc}
 }
 
-func (c *schedulerClient) VolumeHandler(ctx context.Context, in *ReqScheduleHandler, opts ...grpc.CallOption) (*ResScheduleHandler, error) {
+func (c *schedulerClient) ScheduleHandler(ctx context.Context, in *ReqScheduleHandler, opts ...grpc.CallOption) (*ResScheduleHandler, error) {
 	out := new(ResScheduleHandler)
-	err := c.cc.Invoke(ctx, "/RpcScheduler.Scheduler/VolumeHandler", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/RpcScheduler.Scheduler/ScheduleHandler", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (c *schedulerClient) VolumeHandler(ctx context.Context, in *ReqScheduleHand
 // All implementations must embed UnimplementedSchedulerServer
 // for forward compatibility
 type SchedulerServer interface {
-	VolumeHandler(context.Context, *ReqScheduleHandler) (*ResScheduleHandler, error)
+	ScheduleHandler(context.Context, *ReqScheduleHandler) (*ResScheduleHandler, error)
 	mustEmbedUnimplementedSchedulerServer()
 }
 
@@ -49,8 +49,8 @@ type SchedulerServer interface {
 type UnimplementedSchedulerServer struct {
 }
 
-func (*UnimplementedSchedulerServer) VolumeHandler(context.Context, *ReqScheduleHandler) (*ResScheduleHandler, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method VolumeHandler not implemented")
+func (*UnimplementedSchedulerServer) ScheduleHandler(context.Context, *ReqScheduleHandler) (*ResScheduleHandler, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ScheduleHandler not implemented")
 }
 func (*UnimplementedSchedulerServer) mustEmbedUnimplementedSchedulerServer() {}
 
@@ -58,20 +58,20 @@ func RegisterSchedulerServer(s *grpc.Server, srv SchedulerServer) {
 	s.RegisterService(&_Scheduler_serviceDesc, srv)
 }
 
-func _Scheduler_VolumeHandler_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Scheduler_ScheduleHandler_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReqScheduleHandler)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SchedulerServer).VolumeHandler(ctx, in)
+		return srv.(SchedulerServer).ScheduleHandler(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/RpcScheduler.Scheduler/VolumeHandler",
+		FullMethod: "/RpcScheduler.Scheduler/ScheduleHandler",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SchedulerServer).VolumeHandler(ctx, req.(*ReqScheduleHandler))
+		return srv.(SchedulerServer).ScheduleHandler(ctx, req.(*ReqScheduleHandler))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -81,8 +81,8 @@ var _Scheduler_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*SchedulerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "VolumeHandler",
-			Handler:    _Scheduler_VolumeHandler_Handler,
+			MethodName: "ScheduleHandler",
+			Handler:    _Scheduler_ScheduleHandler_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
