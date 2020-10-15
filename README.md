@@ -14,42 +14,6 @@ Cello 는 크게 2가지 기능을 담당 합니다.
 
 
 
-
-
-## ~~Graphql~~
-
-```shell
-create_volume
-update_volume
-delete_volume
-create_volume_attachment # Additional Volume
-update_volume_attachment
-delete_volume_attachment
-```
-
-현재는 create_volume 만 구현되어있음.
-
-
-
-### ~~Exam Query~~
-
-```go
-// Volume create
-mutation _ {
-  create_volume(size:1, filesystem:"zfs", server_uuid:"1234", use_type:"os", user_uuid:"1234") {
-    uuid
-    size
-    filesystem
-    server_uuid
-    use_type
-    user_uuid
-    created_at
-  }
-}
-```
-
-
-
 ## Manage Volume
 
 Storage Node 에서 하는 첫번째 역할은 볼륨 관리이다.
@@ -235,8 +199,6 @@ string    pool = 10; //mandatory
 int32        lun = 11;
 ```
 
-
-
 #### Example
 
 ##### Request
@@ -290,15 +252,27 @@ lun : //생성후 리턴
 
 
 
+
+
+### DeleteVolume
+
+>/RpcCello.Cello/DeleteVolume
+
+```shell
+
+```
+
+
+
+#### Example
+
+
+
 ## DataSet
-
-
 
 `ZFS`
 
 > FileSystem-VolType-ServerUUID
-
-
 
 vol_handler
 
@@ -310,8 +284,6 @@ OS 볼륨 기본 제공 용량은 100G 고정
 # OS, Data
 ex) debian-OS-675acb49-b118-43e9-624a-970139c4f4ff
 ```
-
-
 
 `iscsi`
 
@@ -389,3 +361,33 @@ mutation _ {
 }
 ```
 
+
+
+#### Create Service
+
+```shell
+$ vim /usr/local/etc/rc.d/cello
+#!/bin/sh
+
+. /etc/rc.subr
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:/root/bin
+
+name="cello"
+desc="Start cello"
+rcvar="cello_enable"
+start_cmd="cello_start"
+stop_cmd="cello_stop"
+
+cello_start()
+{
+        nohup /bin/cello > /dev/null 2>&1 &
+}
+
+cello_stop()
+{
+        if pgrep cello; then killall cello; fi
+}
+
+load_rc_config $name
+run_rc_command "$1"
+```

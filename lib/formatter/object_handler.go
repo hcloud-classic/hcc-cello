@@ -21,19 +21,20 @@ type Volpool struct {
 	lock    sync.RWMutex
 }
 
-type lun struct {
+type Lun struct {
 	UUID    string
 	Path    string
 	Size    int
 	UseType string
 	Pool    string
 	Name    string
+	Order   int
 }
 
 // Clusterdomain is configuration object field.
 type Clusterdomain struct {
 	TargetName string
-	Lun        []lun
+	Lun        []Lun
 }
 
 // IscsiMap is the key-value configuration object about iscsi config data
@@ -84,21 +85,28 @@ func VolNameBuilder(volume model.Volume) string {
 	return volume.Pool + "/" + strings.ToLower(volume.Filesystem) + "-" + strings.ToUpper(volume.UseType) + "-" + volume.ServerUUID
 }
 
-//PreLoad : vol data
-func (m *IscsiMap) PreLoad() {
-	for _, args := range GlobalVolumesDB {
-		if VolObjectMap.Domain[args.ServerUUID] == nil {
-			VolObjectMap.PutDomain(args.ServerUUID)
-		}
-		if VolObjectMap.Domain[args.ServerUUID] != nil {
-			lun, _ := VolObjectMap.GetIscsiLun(args)
-			if lun.UUID == "" {
-				VolObjectMap.SetIscsiLun(args)
-			}
-		}
-		// args.Pool = config.VolumeConfig.VOLUMEPOOL
-	}
-}
+// //PreLoad : vol data
+// func (m *IscsiMap) PreLoad() {
+// 	for _, args := range GlobalVolumesDB {
+// 		if m.Domain[args.ServerUUID] == nil {
+// 			m.PutDomain(args.ServerUUID)
+// 		}
+
+// 		fmt.Println("PreLoad : 1")
+// 		if m.Domain[args.ServerUUID] != nil {
+// 			lun, _ := m.GetIscsiLun(args)
+// 			fmt.Println("PreLoad : 2 ", lun)
+
+// 			if lun.UUID == "" {
+// 				m.SetIscsiLun(args)
+// 				fmt.Println("PreLoad : 3")
+
+// 			}
+// 		}
+// 		// args.Pool = config.VolumeConfig.VOLUMEPOOL
+// 		fmt.Println("[PreLoad : ", VolObjectMap.Domain[args.ServerUUID])
+// 	}
+// }
 
 //PutPool : make serveruuid map
 func (m *Volpool) PutPool(pool Pool) {
@@ -140,7 +148,7 @@ func (m *IscsiMap) SetIscsiLun(volume model.Volume) string {
 	defer m.lock.Unlock()
 	if volume.ServerUUID != "" && volume.UseType != "" {
 
-		var templLun lun
+		var templLun Lun
 		var lunNuber int
 		templLun.UUID = volume.UUID
 		templLun.Path = DevPathBuilder(volume)
@@ -151,32 +159,43 @@ func (m *IscsiMap) SetIscsiLun(volume model.Volume) string {
 		templLun.Name = strings.Split(VolNameBuilder(volume), "/")[1]
 		lunNuber = 0
 
-		for range m.Domain[volume.ServerUUID].Lun {
+		for _, args := range m.Domain[volume.ServerUUID].Lun {
+			if args.UUID == volume.UUID {
+				return "Lun [" + volume.UUID + "] Aready Exist!"
+			}
 			lunNuber++
 		}
-		if strings.ToUpper(volume.UseType) == "DATA" {
-			templLun.Path += strconv.Itoa(lunNuber)
+
+		if strings.ToUpper(volume.UseType) == "OS" && volume.LunNum == 0 {
+			templLun.Order = 0
+
+		} else {
+			templLun.Order = m.Domain[volume.ServerUUID].Lun[lunNuber-1].Order + 1
+			templLun.Path += strconv.Itoa(templLun.Order)
 		}
 
+		// m.Domain[volume.ServerUUID].Lun[lunNuber].Path = templLun.Path
+		// m.Domain[volume.ServerUUID].Lun[lunNuber].Order = templLun.Order
 		m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun, templLun)
-		return strconv.Itoa(lunNuber)
+
+		fmt.Println("[Debug] : lunnum -> ", lunNuber, "\n", m.Domain[volume.ServerUUID])
+		return strconv.Itoa(templLun.Order)
 	}
 	return "object handler Setiscsi val err"
 }
 
 //To-Do : Remove Volume sequence
 //RemoveIscsiLun : local var has iscsi config(Target Name , Lun number)
-func (m *IscsiMap) RemoveIscsiLun(volume model.Volume, lunOrder int) {
+func (m *IscsiMap) RemoveIscsiLun(volume model.Volume, lunListOrder int) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	if volume.ServerUUID != "" && volume.Filesystem != "" {
 		if m.Domain[volume.ServerUUID] != nil {
-			if lunOrder < len(m.Domain[volume.ServerUUID].Lun) {
-				if strings.ToUpper(volume.UseType) == "DATA" {
-					m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun[:lunOrder], m.Domain[volume.ServerUUID].Lun[lunOrder+1:]...)
-
-				}
+			// if volume.LunNum < len(m.Domain[volume.ServerUUID].Lun) {
+			if strings.ToUpper(volume.UseType) == "DATA" {
+				m.Domain[volume.ServerUUID].Lun = append(m.Domain[volume.ServerUUID].Lun[:lunListOrder], m.Domain[volume.ServerUUID].Lun[lunListOrder+1:]...)
 			}
+			// }
 			// All lun and Domain map delete
 			// m.Domain[volume.ServerUUID].Lun = nil
 			// delete(m.Domain, volume.ServerUUID)
@@ -218,10 +237,10 @@ func (m *IscsiMap) GetIscsiData(serveruuid string) *Clusterdomain {
 	}
 	return tempVal
 }
-func (m *IscsiMap) GetIscsiLun(volume model.Volume) (lun, string) {
+func (m *IscsiMap) GetIscsiLun(volume model.Volume) (Lun, string) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	var tempVal lun
+	var tempVal Lun
 	if volume.ServerUUID != "" && m.Domain[volume.ServerUUID] != nil {
 		for i, args := range m.Domain[volume.ServerUUID].Lun {
 			if args.UUID == volume.UUID {
@@ -244,6 +263,19 @@ func (m *IscsiMap) PutDomain(serveruuid string) {
 }
 
 //GetDomain : make serveruuid map
+func (m *IscsiMap) GetIscsiMap() *IscsiMap {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	var tempVal *IscsiMap
+	if m != nil {
+		tempVal = m
+	} else {
+		fmt.Println("object handler get val err")
+	}
+	return tempVal
+}
+
+//GetDomain : make serveruuid map
 func (m *IscsiMap) GetDomain(serveruuid string) *Clusterdomain {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
@@ -257,14 +289,16 @@ func (m *IscsiMap) GetDomain(serveruuid string) *Clusterdomain {
 }
 
 //RemoveDomain : make serveruuid map
-func (m *IscsiMap) RemoveDomain(serveruuid string) {
+func (m *IscsiMap) RemoveDomain(serveruuid string) bool {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	if serveruuid != "" && VolObjectMap.Domain[serveruuid] != nil {
 		delete(VolObjectMap.Domain, serveruuid)
+		return true
 	} else {
 		fmt.Println("object handler There is not exist map ", serveruuid)
 	}
+	return false
 }
 
 //MapSize : return map size

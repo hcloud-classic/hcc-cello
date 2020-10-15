@@ -21,15 +21,15 @@ lint_dep: ## Get the dependencies for golint
 lint: ## Lint the files
 	@$(GOPATH)/bin/golint -set_exit_status ${PKG_LIST}
 
-test: ## Run unittests
-	@sudo -E $(GOROOT)/bin/go test -v ${PKG_LIST}
+# test: ## Run unittests
+# 	@sudo -E $(GOROOT)/bin/go test -v ${PKG_LIST}
 
-race: ## Run data race detector
-	@sudo -E $(GOROOT)/bin/go test -race -v ${PKG_LIST}
+# race: ## Run data race detector
+# 	@sudo -E $(GOROOT)/bin/go test -race -v ${PKG_LIST}
 
-coverage: ## Generate global code coverage report
-	@sudo -E $(GOROOT)/bin/go test -v -coverprofile=coverage.out ${PKG_LIST}
-	@$(GOROOT)/bin/go tool cover -func=coverage.out
+# coverage: ## Generate global code coverage report
+# 	@sudo -E $(GOROOT)/bin/go test -v -coverprofile=coverage.out ${PKG_LIST}
+# 	@$(GOROOT)/bin/go tool cover -func=coverage.out
 
 coverhtml: coverage ## Generate global code coverage report in HTML
 	@$(GOROOT)/bin/go tool cover -html=coverage.out

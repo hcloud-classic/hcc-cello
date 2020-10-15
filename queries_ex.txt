@@ -15,6 +15,20 @@ http://localhost:8001/graphql
   }
 }
 
+{
+  "volume": {
+    "size": "1G",
+    "filesystem": "centos",
+    "serverUUID": "qwe",
+    "useType": "os",
+    "userUUID": "999",
+    "networkIP": "172.18.1.1",
+    "gatewayIp": "172.18.1.1",
+    "action": "delete",
+    "UUID": "e2c778c5-4b0c-4549-61e9-5f0e893963eb"
+  }
+}
+
 
 {
   "volume": {

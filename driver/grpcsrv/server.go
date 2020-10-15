@@ -1,12 +1,15 @@
 package grpcsrv
 
 import (
+	"fmt"
 	pb "hcc/cello/action/grpc/pb/rpccello"
 	"hcc/cello/dao"
 	hccerr "hcc/cello/lib/errors"
+	"hcc/cello/lib/formatter"
 	handler "hcc/cello/lib/handler"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -36,6 +39,7 @@ func reformatPBReqtoModelVolume(contents *pb.ReqVolumeHandler, volume *model.Vol
 	onlysize := strings.Split(pbVolume.GetSize(), "G")
 	size, _ := strconv.Atoi(onlysize[0])
 	volume.Size = size
+	volume.UUID = pbVolume.GetUUID()
 	volume.Filesystem = pbVolume.GetFilesystem()
 	volume.ServerUUID = pbVolume.GetServerUUID()
 	volume.UseType = pbVolume.GetUseType()
@@ -123,6 +127,124 @@ ERROR:
 
 }
 
+func deleteAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorStack {
+	var tempModelVolume model.Volume
+	errStack := hccerr.NewHccErrorStack()
+
+	if pbVolume.UseType == "" || pbVolume.Filesystem == "" || pbVolume.ServerUUID == "" {
+		if errStack != nil {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError})
+			goto ERROR
+		}
+	}
+	logger.Logger.Println("ActionHandle: Delete OS volume")
+
+	switch strings.ToLower(volume.UseType) {
+	case "os":
+
+		deleteObjStatus, err := handler.DeleteVolumeObj(*volume)
+		if !deleteObjStatus {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError})
+			goto ERROR
+		}
+		lunInfo := (err).(*formatter.Clusterdomain)
+		iscsiStatus, err := handler.WriteIscsiConfigObject(*volume)
+		if !iscsiStatus {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalWriteIscsiError})
+
+			goto ERROR
+		}
+		logger.Logger.Println("WriteIscsiConfigObject : ", err)
+
+		actionstatus, err := handler.DeletePxeSetting(volume)
+		if !actionstatus {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalPreparePxeError, ErrText: err.(string)})
+
+			goto ERROR
+		}
+		for i, args := range lunInfo.Lun {
+			zfsDataSetVolName := strings.Split(args.Path, "/")
+			deleteVolStatus, err := handler.DeleteVolumeZFS(args.Pool + "/" + zfsDataSetVolName[len(zfsDataSetVolName)-1])
+			fmt.Println("Delete ", i, " : ", args)
+			if !deleteVolStatus {
+				errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError, ErrText: err.(string)})
+				goto ERROR
+			}
+			tempModelVolume.UUID = args.UUID
+			errcode, errstr := dao.DeleteVolume(&tempModelVolume)
+			if errstr != nil {
+				logger.Logger.Println("Error DB : ", errstr)
+				errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr.Error()})
+				goto ERROR
+			}
+		}
+
+	case "data":
+
+		deleteObjStatus, err := handler.DeleteVolumeObj(*volume)
+		if !deleteObjStatus {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError})
+			goto ERROR
+		}
+		lunInfo := (err).(formatter.Lun)
+		iscsiStatus, err := handler.WriteIscsiConfigObject(*volume)
+		if !iscsiStatus {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalWriteIscsiError})
+
+			goto ERROR
+		}
+		logger.Logger.Println("WriteIscsiConfigObject : ", err)
+
+		zfsDataSetVolName := strings.Split(lunInfo.Path, "/")
+		deleteVolStatus, err := handler.DeleteVolumeZFS(lunInfo.Pool + "/" + zfsDataSetVolName[len(zfsDataSetVolName)-1])
+		fmt.Println("Delete ", " : ", lunInfo)
+		if !deleteVolStatus {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError, ErrText: err.(string)})
+			goto ERROR
+		}
+		tempModelVolume.UUID = lunInfo.UUID
+		errcode, errstr := dao.DeleteVolume(&tempModelVolume)
+		if errstr != nil {
+			logger.Logger.Println("Error DB : ", errstr)
+			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr.Error()})
+			goto ERROR
+		}
+
+	default:
+		// errstr := "deleteAction Failed "
+		// errStack.Push(&hccerr.HccError{ErrText: errstr})
+		goto ERROR
+	}
+	return errStack.ConvertReportForm()
+
+ERROR:
+	errStack.Push(&hccerr.HccError{
+		ErrText: "deleteAction(): Failed to delete volume",
+	})
+
+	return errStack.ConvertReportForm()
+
+}
+func ReloadAllofVolInfo() error {
+
+	celloParams := make(map[string]interface{})
+	celloParams["row"] = 254
+	celloParams["page"] = 1
+	dbVol, err := dao.ReadVolumeAll(celloParams)
+	if err != nil {
+		fmt.Println("Error")
+	}
+
+	formatter.GlobalVolumesDB = dbVol.([]model.Volume)
+	fmt.Println("ReloadAllofVolInfo", formatter.GlobalVolumesDB)
+	sort.Slice(formatter.GlobalVolumesDB, func(i, j int) bool {
+		return formatter.GlobalVolumesDB[i].LunNum < formatter.GlobalVolumesDB[j].LunNum
+	})
+	handler.PreLoad()
+	fmt.Println("ReloadAllofVolInfo : \n", formatter.VolObjectMap.GetIscsiMap())
+	return err
+}
+
 //VolumeHandler : Manipulate Volume Create
 func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorStack) {
 	var err error
@@ -136,7 +258,12 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID + "\n User : " + retPbVolume.UserUUID + "}"})
 		goto ERROR
 	}
-
+	err = ReloadAllofVolInfo()
+	if err != nil {
+		errStack.Push(&hccerr.HccError{ErrText: "Can't Preload "})
+		logger.Logger.Println("Preload", errStack)
+		goto ERROR
+	}
 	err = handler.ReloadPoolObject()
 	if err != nil {
 		errStack.Push(&hccerr.HccError{ErrText: "Can't Reload Object"})
@@ -176,7 +303,24 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 
 	case "read":
 	case "update":
+
 	case "delete":
+		tempErr := deleteAction(retPbVolume, &modelVolume)
+		if tempErr.Len() > 0 {
+			logger.Logger.Println("Error deleteAction: ", tempErr)
+			errStack.AppendStack(tempErr)
+			goto ERROR
+		}
+
+		logger.Logger.Println("[Create Volume] Success ")
+
+		// errcode, errstr := dao.ReadVolume(&modelVolume)
+		// if errstr != "" {
+		// 	logger.Logger.Println("Error DB : ", errstr)
+		// 	errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr})
+		// 	goto ERROR
+		// }
+
 	default:
 		errstr := "Invalid Action : " + retPbVolume.Action
 		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: errstr})

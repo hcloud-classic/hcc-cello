@@ -3,11 +3,28 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
+	"hcc/cello/model"
 	"os"
 	"os/exec"
 	"strings"
 )
+
+//DeletePxeSetting : Remove all pxesetting
+func DeletePxeSetting(volume *model.Volume) (bool, interface{}) {
+	if _, err := os.Stat(defaultdir + "/" + volume.ServerUUID); os.IsNotExist(err) {
+		if err != nil {
+			return false, "DIR [" + defaultdir + "/" + volume.ServerUUID + "] Does Not Exist"
+		}
+	}
+	checkStatus, err := removeDIR(defaultdir + "/" + volume.ServerUUID)
+	if !checkStatus {
+		return checkStatus, err
+	}
+
+	return true, nil
+}
 
 //PreparePxeSetting : Prepare Pxe Setting, that pxelinux.cfg/default context update
 // create pxe
@@ -67,10 +84,10 @@ func rebuildPxeSetting(ServerUUID string, pxeDir string, networkIP string, gatew
 	leaderpxecfg := grubdefault + leaderoption + iscsioption + commonoption
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_KERNEL", "vmlinuz-hcc", -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-hcc", -1)
-	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sdb1", -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sdc1", -1)
 	splitip := strings.Split(networkIP, ".")
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_COMPUTE_SESSION_ID", splitip[2], -1)
-	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_SERVER_IP", gateway, -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_SERVER_IP", config.VolumeConfig.IscsiDiscoveryAddress[0], -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_TARGET_DOMAIN", ServerUUID, -1)
 
 	// logger.Logger.Println("leaderpxecfg => ", leaderpxecfg)
@@ -128,6 +145,7 @@ func writeFile(fileLocation string, input string) error {
 
 	return nil
 }
+
 func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	tmpstr := "cp -R " + src + " " + dst
 	cmd := exec.Command("/bin/bash", "-c", tmpstr)
@@ -136,6 +154,16 @@ func copydefaultsetting(src string, dst string) (bool, interface{}) {
 	result, err := cmd.CombinedOutput()
 	if err != nil {
 		return false, errors.New("Pxe Config can't write  " + string(result) + "=>  " + src + "  =>  " + dst)
+	}
+	return true, result
+}
+
+func removeDIR(src string) (bool, interface{}) {
+	tmpstr := "rm -rf " + src
+	cmd := exec.Command("/bin/bash", "-c", tmpstr)
+	result, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, errors.New("Pxe Config can't remove  " + string(result) + "=>  " + src)
 	}
 	return true, result
 }
