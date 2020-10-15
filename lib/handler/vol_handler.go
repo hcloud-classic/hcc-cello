@@ -83,6 +83,24 @@ func ReloadPoolObject() error {
 
 }
 
+func findVolObejct(volume model.Volume) bool {
+	if formatter.VolObjectMap.Domain[volume.ServerUUID] != nil && strings.ToUpper(volume.UseType) != "" && volume.UUID != "" {
+		return true
+	}
+	return false
+}
+
+func PreLoad() {
+	for _, args := range formatter.GlobalVolumesDB {
+		lunNum := addVolObejct(args)
+		if lunNum == "" {
+			strerr := "Create ZFS(Lun Numbering) : Faild )"
+			logger.Logger.Println(strerr)
+			removeVolObejct(args)
+		}
+	}
+}
+
 func addVolObejct(volume model.Volume) string {
 	var lunNum string
 	if formatter.VolObjectMap.Domain[volume.ServerUUID] == nil && strings.ToUpper(volume.UseType) != "DATA" {
@@ -95,38 +113,39 @@ func addVolObejct(volume model.Volume) string {
 }
 
 //To do
-func removeVolObejct(volume model.Volume, lunNum int) {
-
-	if formatter.VolObjectMap.Domain[volume.ServerUUID] != nil {
-		formatter.VolObjectMap.RemoveIscsiLun(volume, lunNum)
+func removeVolObejct(volume model.Volume) {
+	if findVolObejct(volume) {
+		_, lunNum := formatter.VolObjectMap.GetIscsiLun(volume)
+		lunOrderInList, _ := strconv.Atoi(lunNum)
+		formatter.VolObjectMap.RemoveIscsiLun(volume, lunOrderInList)
 	}
 }
 
 // CreateVolume : Creatte Volume
 func CreateVolume(volume model.Volume) (bool, interface{}) {
 	lunNum := addVolObejct(volume)
-	logger.Logger.Println("Codex :\n", volume)
+	logger.Logger.Println("Codex :\n", volume, "\n Lunnum: ", lunNum)
 	if lunNum == "" {
 		strerr := "Create ZFS(Lun Numbering) : Faild )"
 		logger.Logger.Println(strerr)
-		lunInt, _ := strconv.Atoi(lunNum)
-		removeVolObejct(volume, lunInt)
+		// lunInt, _ := strconv.Atoi(lunNum)
+		removeVolObejct(volume)
 		return false, errors.New("[Cello]  : " + strerr)
 	}
 	volume.LunNum, _ = strconv.Atoi(lunNum)
 	if volume.UseType == "os" {
 		createcheck, err := clonezvol(volume)
 		if !createcheck {
-			lunInt, _ := strconv.Atoi(lunNum)
-			removeVolObejct(volume, lunInt)
+			// lunInt, _ := strconv.Atoi(lunNum)
+			removeVolObejct(volume)
 			logger.Logger.Println("Create ZFS(OS) : Faild")
 			return false, err
 		}
 	} else {
 		createcheck, err := createzvol(volume)
 		if !createcheck {
-			lunInt, _ := strconv.Atoi(lunNum)
-			removeVolObejct(volume, lunInt)
+			// lunInt, _ := strconv.Atoi(lunNum)
+			removeVolObejct(volume)
 			logger.Logger.Println("Create ZFS(DATA) : Faild")
 			return false, err
 		}
@@ -136,17 +155,63 @@ func CreateVolume(volume model.Volume) (bool, interface{}) {
 
 }
 
+// DeleteVolumeObj : only remove volume obj
+// TODO : Implement delete volume
+func DeleteVolumeObj(volume model.Volume) (bool, interface{}) {
+	if strings.ToLower(volume.UseType) == "os" {
+		ejectDomain := formatter.VolObjectMap.GetDomain(volume.ServerUUID)
+		checkResult := formatter.VolObjectMap.RemoveDomain(volume.ServerUUID)
+		if !checkResult {
+			logger.Logger.Println("Delete OS Volume Failed")
+			return false, nil
+		}
+		fmt.Println("[Debug] : ", ejectDomain)
+		return true, ejectDomain
+	} else {
+		lunStructure, _ := formatter.VolObjectMap.GetIscsiLun(volume)
+		removeVolObejct(volume)
+		return true, lunStructure
+	}
+
+}
+
+//DeleteVolumeZFS : Delete Physical zVolume
+func DeleteVolumeZFS(volName string) (bool, interface{}) {
+
+	checkResult := destroyzvol(volName)
+	if !checkResult {
+		logger.Logger.Println("Delete Data Volume Failed")
+		return checkResult, "Delete Data Volume Failed"
+
+	}
+	return checkResult, nil
+}
+
+func destroyzvol(volumeName string) bool {
+	fmt.Println("destroyzvol : ", volumeName)
+	cmd := exec.Command("zfs", "destroy", volumeName)
+	result, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Logger.Println("destroyzvol : ", result, " ", err, " : ", cmd)
+		return false
+	}
+
+	return true
+}
+
 func createzvol(volume model.Volume) (bool, interface{}) {
 
 	volname := formatter.VolNameBuilder(volume) + "-" + strconv.Itoa(volume.LunNum)
 	convertSize := strconv.Itoa(volume.Size) + "G"
 	volblocksize := "volblocksize=" + "4096"
 	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, volname)
+
 	result, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Logger.Println(result, " ", err, " : ", cmd)
+		logger.Logger.Println("createzvol : ", result, " ", err, " : ", cmd)
 		return false, err
 	}
+
 	return true, result
 }
 
@@ -232,12 +297,6 @@ func QuotaCheck(ServerUUID string) (bool, interface{}) {
 	}
 	zsysteminfo.PoolCapacity = tmpstr[posofvalue]
 	return true, tmpstr[posofvalue]
-}
-
-// DeleteVolume :
-// TODO : Implement delete volume
-func DeleteVolume() {
-
 }
 
 // UpdateVolume :

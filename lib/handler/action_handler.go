@@ -19,6 +19,6 @@ func ReloadAllofVolInfo() error {
 	}
 
 	formatter.GlobalVolumesDB = dbVol.([]model.Volume)
-	formatter.VolObjectMap.PreLoad()
+	// formatter.VolObjectMap.PreLoad()
 	return err
 }

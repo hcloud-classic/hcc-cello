@@ -10,11 +10,11 @@ import (
 	"time"
 )
 
-// ReadVolume - cgs
-func ReadVolume(args map[string]interface{}) (interface{}, error) {
+// ReadVolume : Single Volume info
+func ReadVolume(in *model.Volume) (interface{}, error) {
 	var volume model.Volume
 	var err error
-	uuid := args["uuid"].(string)
+	uuid := in.UUID
 
 	var size int
 	var filesystem string
@@ -22,6 +22,7 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	var useType string
 	var userUUID string
 	var lunNum int
+	var pool string
 	var createdAt time.Time
 
 	sql := "select * from volume where uuid = ?"
@@ -33,6 +34,7 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 		&useType,
 		&userUUID,
 		&lunNum,
+		&pool,
 		&createdAt)
 	if err != nil {
 		logger.Logger.Println(err)
@@ -46,6 +48,7 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	volume.UseType = useType
 	volume.UserUUID = userUUID
 	volume.LunNum = lunNum
+	volume.Pool = pool
 	volume.CreatedAt = createdAt
 
 	return volume, nil
@@ -167,7 +170,7 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	return volumes, nil
 }
 
-// ReadVolumeNum - cgs
+// ReadVolumeNum : The number of Volumes
 func ReadVolumeNum() (model.VolumeNum, error) {
 	var volumeNum model.VolumeNum
 	var volumeNr int
@@ -199,7 +202,6 @@ func CreateVolume(in *model.Volume) (uint64, string) {
 		errStr := "[volumeDao]Can't Update DB: " + err.Error()
 		return hccerr.CelloSQLOperationFail, errStr
 	}
-
 	return 0, ""
 }
 
@@ -277,29 +279,28 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 }
 
 // DeleteVolume - cgs
-func DeleteVolume(args map[string]interface{}) (interface{}, error) {
+func DeleteVolume(in *model.Volume) (uint64, error) {
 	var err error
 
-	requestedUUID, ok := args["uuid"].(string)
-	if ok {
+	if in.UUID != "" {
 		sql := "delete from volume where uuid = ?"
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
 			logger.Logger.Println(err.Error())
-			return nil, err
+			return hccerr.CelloSQLOperationFail, err
 		}
 		defer func() {
 			_ = stmt.Close()
 		}()
-		result, err2 := stmt.Exec(requestedUUID)
+		result, err2 := stmt.Exec(in.UUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)
-			return nil, err
+			return hccerr.CelloSQLOperationFail, err
 		}
 		logger.Logger.Println(result.RowsAffected())
 
-		return requestedUUID, nil
+		return 0, nil
 	}
 
-	return requestedUUID, err
+	return hccerr.CelloSQLOperationFail, err
 }

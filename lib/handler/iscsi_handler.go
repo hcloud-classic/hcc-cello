@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"hcc/cello/lib/formatter"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
@@ -20,7 +21,7 @@ func iscsiServiceHandler() (bool, interface{}) {
 	} else {
 		cmd := exec.Command("service", "ctld", "reload")
 		result, err = cmd.CombinedOutput()
-		logger.Logger.Println("Iscsi Service reload")
+		logger.Logger.Println("Iscsi Service reload ", err)
 	}
 	if err != nil {
 		logger.Logger.Println(err)
@@ -41,8 +42,11 @@ func WriteIscsiConfigObject(volume model.Volume) (bool, interface{}) {
 		_ = file.Close()
 	}()
 	input := iscsiportal
+	fmt.Println("WriteIscsiConfigObject  ====> ")
+
 	for _, args := range formatter.VolObjectMap.Domain {
-		input = input + "\n" + configBuilder(volume, args)
+		fmt.Println(args)
+		input = input + "\n" + configBuilder(args)
 	}
 	_, err = file.WriteString(input)
 	if err != nil {
@@ -52,12 +56,13 @@ func WriteIscsiConfigObject(volume model.Volume) (bool, interface{}) {
 
 	errstatus, result := iscsiServiceHandler()
 	if !errstatus {
+		logger.Logger.Println("iscsiServiceHandler Failed")
 		return false, result
 	}
 	return true, "iscsi setting Complete"
 
 }
-func configBuilder(volume model.Volume, domain *formatter.Clusterdomain) string {
+func configBuilder(domain *formatter.Clusterdomain) string {
 	lunList := ""
 	targetLunList := ""
 	targetDomain := iscsitarget

@@ -99,6 +99,7 @@ func parseVolumeHandle() {
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
+
 }
 
 // Parser : Parse config file
