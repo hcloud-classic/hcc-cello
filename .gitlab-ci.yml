@@ -14,22 +14,22 @@ copy_dir:
     script:
     - gmake copy_dir
 
-unit_tests:
-  stage: test
-  script:
-    - gmake test
+# unit_tests:
+#   stage: test
+#   script:
+#     - gmake test
 
-race_detector:
-  stage: test
-  script:
-    - gmake race
+# race_detector:
+#   stage: test
+#   script:
+#     - gmake race
 
-code_coverage:
-  stage: test
-  script:
-    - gmake coverage
-#  only:
-#  - master
+# code_coverage:
+#   stage: test
+#   script:
+#     - gmake coverage
+# #  only:
+# #  - master
 
 go_report:
   stage: test
