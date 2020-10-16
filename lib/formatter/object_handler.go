@@ -170,8 +170,14 @@ func (m *IscsiMap) SetIscsiLun(volume model.Volume) string {
 			templLun.Order = 0
 
 		} else {
-			templLun.Order = m.Domain[volume.ServerUUID].Lun[lunNuber-1].Order + 1
-			templLun.Path += strconv.Itoa(templLun.Order)
+			if volume.LunNum > 0 {
+				templLun.Order = volume.LunNum
+				templLun.Path += strconv.Itoa(templLun.Order)
+			} else {
+				templLun.Order = m.Domain[volume.ServerUUID].Lun[lunNuber-1].Order + 1
+				templLun.Path += strconv.Itoa(templLun.Order)
+
+			}
 		}
 
 		// m.Domain[volume.ServerUUID].Lun[lunNuber].Path = templLun.Path
