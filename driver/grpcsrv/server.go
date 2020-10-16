@@ -127,8 +127,8 @@ ERROR:
 
 }
 
-func deleteAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorStack {
-	var tempModelVolume model.Volume
+func deleteAction(pbVolume *pb.Volume, volume *model.Volume) ([]formatter.Lun, *hccerr.HccErrorStack) {
+	var retLunList []formatter.Lun
 	errStack := hccerr.NewHccErrorStack()
 
 	if pbVolume.UseType == "" || pbVolume.Filesystem == "" || pbVolume.ServerUUID == "" {
@@ -148,6 +148,10 @@ func deleteAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 			goto ERROR
 		}
 		lunInfo := (err).(*formatter.Clusterdomain)
+		for _, args := range lunInfo.Lun {
+			retLunList = append(retLunList, args)
+		}
+
 		iscsiStatus, err := handler.WriteIscsiConfigObject(*volume)
 		if !iscsiStatus {
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalWriteIscsiError})
@@ -162,22 +166,6 @@ func deleteAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 
 			goto ERROR
 		}
-		for i, args := range lunInfo.Lun {
-			zfsDataSetVolName := strings.Split(args.Path, "/")
-			deleteVolStatus, err := handler.DeleteVolumeZFS(args.Pool + "/" + zfsDataSetVolName[len(zfsDataSetVolName)-1])
-			fmt.Println("Delete ", i, " : ", args)
-			if !deleteVolStatus {
-				errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError, ErrText: err.(string)})
-				goto ERROR
-			}
-			tempModelVolume.UUID = args.UUID
-			errcode, errstr := dao.DeleteVolume(&tempModelVolume)
-			if errstr != nil {
-				logger.Logger.Println("Error DB : ", errstr)
-				errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr.Error()})
-				goto ERROR
-			}
-		}
 
 	case "data":
 
@@ -187,6 +175,7 @@ func deleteAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 			goto ERROR
 		}
 		lunInfo := (err).(formatter.Lun)
+		retLunList = append(retLunList, lunInfo)
 		iscsiStatus, err := handler.WriteIscsiConfigObject(*volume)
 		if !iscsiStatus {
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalWriteIscsiError})
@@ -195,34 +184,19 @@ func deleteAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 		}
 		logger.Logger.Println("WriteIscsiConfigObject : ", err)
 
-		zfsDataSetVolName := strings.Split(lunInfo.Path, "/")
-		deleteVolStatus, err := handler.DeleteVolumeZFS(lunInfo.Pool + "/" + zfsDataSetVolName[len(zfsDataSetVolName)-1])
-		fmt.Println("Delete ", " : ", lunInfo)
-		if !deleteVolStatus {
-			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError, ErrText: err.(string)})
-			goto ERROR
-		}
-		tempModelVolume.UUID = lunInfo.UUID
-		errcode, errstr := dao.DeleteVolume(&tempModelVolume)
-		if errstr != nil {
-			logger.Logger.Println("Error DB : ", errstr)
-			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr.Error()})
-			goto ERROR
-		}
-
 	default:
-		// errstr := "deleteAction Failed "
-		// errStack.Push(&hccerr.HccError{ErrText: errstr})
+		errstr := "Use Type Invalid"
+		errStack.Push(&hccerr.HccError{ErrText: errstr})
 		goto ERROR
 	}
-	return errStack.ConvertReportForm()
+	return retLunList, errStack.ConvertReportForm()
 
 ERROR:
 	errStack.Push(&hccerr.HccError{
 		ErrText: "deleteAction(): Failed to delete volume",
 	})
 
-	return errStack.ConvertReportForm()
+	return retLunList, errStack.ConvertReportForm()
 
 }
 func ReloadAllofVolInfo() error {
@@ -251,6 +225,8 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 	var uuid string
 	errStack := hccerr.NewHccErrorStack()
 	var modelVolume model.Volume
+	var tempModelVolume model.Volume
+
 	reformatPBReqtoModelVolume(contents, &modelVolume)
 	retPbVolume := reformatPBReqtoPBVolume(contents)
 	logger.Logger.Println("Resolving: create_volume")
@@ -302,17 +278,34 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 		logger.Logger.Println("[Create Volume] Success ")
 
 	case "read":
+
 	case "update":
 
 	case "delete":
-		tempErr := deleteAction(retPbVolume, &modelVolume)
+		lunList, tempErr := deleteAction(retPbVolume, &modelVolume)
 		if tempErr.Len() > 0 {
 			logger.Logger.Println("Error deleteAction: ", tempErr)
 			errStack.AppendStack(tempErr)
 			goto ERROR
 		}
+		for i, args := range lunList {
+			zfsDataSetVolName := strings.Split(args.Path, "/")
+			deleteVolStatus, err := handler.DeleteVolumeZFS(args.Pool + "/" + zfsDataSetVolName[len(zfsDataSetVolName)-1])
+			fmt.Println("Delete ", i, " : ", args)
+			if !deleteVolStatus {
+				errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError, ErrText: err.(string)})
+				goto ERROR
+			}
+			tempModelVolume.UUID = args.UUID
+			errcode, errstr := dao.DeleteVolume(&tempModelVolume)
+			if errstr != nil {
+				logger.Logger.Println("Error DB : ", errstr)
+				errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr.Error()})
+				goto ERROR
+			}
+		}
 
-		logger.Logger.Println("[Create Volume] Success ")
+		logger.Logger.Println("[Delete Volume] Success ")
 
 		// errcode, errstr := dao.ReadVolume(&modelVolume)
 		// if errstr != "" {
