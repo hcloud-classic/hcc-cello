@@ -16,6 +16,7 @@ type Pool struct {
 	Health        string
 	Name          string
 	AvailableSize string
+	Used          string
 }
 
 type Volpool struct {
@@ -126,6 +127,7 @@ func (m *Volpool) PutPool(pool Pool) {
 		m.PoolMap[pool.Name].Size = pool.Size
 		m.PoolMap[pool.Name].Name = pool.Name
 		m.PoolMap[pool.Name].AvailableSize = pool.AvailableSize
+		m.PoolMap[pool.Name].Used = pool.Used
 	} else {
 		fmt.Println("Pool Obj Can't put in structure")
 	}

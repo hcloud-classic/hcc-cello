@@ -43,7 +43,11 @@ func ReloadPoolObject() error {
 				return err
 
 			}
-			convIntPoolFree, _ := strconv.ParseFloat(strings.Trim(strings.TrimSpace(string(result)), "GTBM"), 64)
+			poolobj.Free = string(result)
+			convIntPoolFree, _ := strconv.ParseFloat(strings.Trim(strings.TrimSpace(poolobj.Free), "GTBM"), 64)
+			if strings.Contains(poolobj.Free, "T") {
+				convIntPoolFree *= 1024
+			}
 			poolobj.Free = strconv.Itoa(int(math.Floor(convIntPoolFree)))
 
 			act = "zpool list -H -o capacity " + args
@@ -73,9 +77,14 @@ func ReloadPoolObject() error {
 				}
 			}
 			convIntPoolSize, _ := strconv.ParseFloat(strings.Trim(strings.TrimSpace(poolobj.Size), "GTBM"), 64)
+			if strings.Contains(poolobj.Size, "T") {
+				convIntPoolSize *= 1024
+			}
 			poolobj.AvailableSize = strconv.Itoa(int(math.Floor(convIntPoolSize - float64(intSize))))
 
-			fmt.Println("convIntPoolSize : ", convIntPoolSize, " intSize: ", intSize)
+			poolobj.Used = strconv.Itoa(intSize)
+			fmt.Println("convIntPoolSize : ", convIntPoolSize, " intSize: ", poolobj.Used)
+
 			act = "zpool list -H -o health " + args
 			cmd = exec.Command("/bin/bash", "-c", act)
 			result, err = cmd.CombinedOutput()
