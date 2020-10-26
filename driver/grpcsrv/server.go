@@ -4,6 +4,7 @@ import (
 	"fmt"
 	pb "hcc/cello/action/grpc/pb/rpccello"
 	"hcc/cello/dao"
+	"hcc/cello/lib/config"
 	hccerr "hcc/cello/lib/errors"
 	"hcc/cello/lib/formatter"
 	handler "hcc/cello/lib/handler"
@@ -46,6 +47,7 @@ func reformatPBReqtoPBPool(contents *pb.ReqPoolHandler) *pb.Pool {
 		Name:          pbPool.GetName(),
 		AvailableSize: pbPool.GetAvailableSize(),
 		Action:        pbPool.GetAction(),
+		Used:          pbPool.GetUsed(),
 	}
 }
 
@@ -441,16 +443,18 @@ func PoolHandler(contents *pb.ReqPoolHandler) (*pb.Pool, *hccerr.HccErrorStack) 
 	case "read":
 
 		for _, args := range formatter.PoolObjectMap.PoolMap {
-			// if retPbPool.Name == args.Name {
-			retPbPool.AvailableSize = args.AvailableSize
-			retPbPool.Capacity = args.Capacity
-			retPbPool.Free = strings.Trim(strings.TrimSpace(args.Free), "GTBM")
-			retPbPool.Size = args.Size
-			retPbPool.Health = args.Health
-			retPbPool.Name = args.Name
-			// }
+			fmt.Println("formatter.PoolObjectMap.PoolMap\n\n", args)
+
+			if args.Name == config.VolumeConfig.VOLUMEPOOL {
+				retPbPool.AvailableSize = args.AvailableSize
+				retPbPool.Capacity = args.Capacity
+				retPbPool.Free = args.Free
+				retPbPool.Size = args.Size
+				retPbPool.Health = args.Health
+				retPbPool.Name = args.Name
+				retPbPool.Used = args.Used
+			}
 		}
-		fmt.Println("READ : ", retPbPool)
 	case "update":
 
 	case "delete":

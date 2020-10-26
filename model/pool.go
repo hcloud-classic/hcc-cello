@@ -10,4 +10,5 @@ type Pool struct {
 	Name          string `json:"name"`
 	AvailableSize string `json:"availablesize"`
 	Action        string `json:"action"`
+	Used          string `json:"used"`
 }
