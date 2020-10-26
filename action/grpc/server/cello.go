@@ -28,8 +28,21 @@ func returnVolume(volume *pb.Volume) *pb.Volume {
 	}
 }
 
+func returnPool(pool *pb.Pool) *pb.Pool {
+	return &pb.Pool{
+		UUID:          pool.UUID,
+		Size:          pool.Size,
+		Free:          pool.Free,
+		Capacity:      pool.Capacity,
+		Health:        pool.Health,
+		Name:          pool.Name,
+		AvailableSize: pool.AvailableSize,
+		Action:        pool.Action,
+	}
+}
+
 func (s *celloServer) VolumeHandler(_ context.Context, in *pb.ReqVolumeHandler) (*pb.ResVolumeHandler, error) {
-	logger.Logger.Println("Request received: CreateVolume()")
+	logger.Logger.Println("Request received: Volume Handler()")
 	// fmt.Println("Grpc : \n", &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(nil)})
 	volume, errStack := grpcsrv.VolumeHandler(in)
 	if volume == nil {
@@ -37,4 +50,15 @@ func (s *celloServer) VolumeHandler(_ context.Context, in *pb.ReqVolumeHandler) 
 	}
 
 	return &pb.ResVolumeHandler{Volume: returnVolume(volume)}, nil
+}
+
+func (s *celloServer) PoolHandler(_ context.Context, in *pb.ReqPoolHandler) (*pb.ResPoolHandler, error) {
+	logger.Logger.Println("Request received: Pool Handler()")
+	// fmt.Println("Grpc : \n", &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(nil)})
+	pool, errStack := grpcsrv.PoolHandler(in)
+	if pool == nil {
+		return &pb.ResPoolHandler{Pool: &pb.Pool{}, HccErrorStack: errconv.HccStackToGrpc(errStack)}, nil
+	}
+
+	return &pb.ResPoolHandler{Pool: pool}, nil
 }

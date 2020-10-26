@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	gouuid "github.com/nu7hatch/gouuid"
 )
 
@@ -34,6 +35,50 @@ func reformatPBReqtoPBVolume(contents *pb.ReqVolumeHandler) *pb.Volume {
 	}
 }
 
+func reformatPBReqtoPBPool(contents *pb.ReqPoolHandler) *pb.Pool {
+	pbPool := contents.GetPool()
+	return &pb.Pool{
+		UUID:          pbPool.GetUUID(),
+		Size:          pbPool.GetSize(),
+		Free:          pbPool.GetFree(),
+		Capacity:      pbPool.GetCapacity(),
+		Health:        pbPool.GetHealth(),
+		Name:          pbPool.GetName(),
+		AvailableSize: pbPool.GetAvailableSize(),
+		Action:        pbPool.GetAction(),
+	}
+}
+
+func reformatModelVolumetoPBVolume(volume *model.Volume) *pb.Volume {
+
+	return &pb.Volume{
+		UUID:       volume.UUID,
+		Size:       strconv.Itoa(volume.Size),
+		Filesystem: volume.Filesystem,
+		ServerUUID: volume.ServerUUID,
+		UseType:    volume.UseType,
+		UserUUID:   volume.UserUUID,
+		Network_IP: volume.NetworkIP,
+		GatewayIp:  volume.GatewayIP,
+		Pool:       volume.Pool,
+		Lun:        int64(volume.LunNum),
+		CreatedAt:  &timestamp.Timestamp{Seconds: volume.CreatedAt.Unix(), Nanos: int32(volume.CreatedAt.Nanosecond())},
+	}
+}
+
+func reformatModelPooltoPBPool(pool *model.Pool) *pb.Pool {
+	return &pb.Pool{
+		UUID:          pool.UUID,
+		Size:          pool.Size,
+		Free:          pool.Free,
+		Capacity:      pool.Capacity,
+		Health:        pool.Health,
+		Name:          pool.Name,
+		AvailableSize: pool.AvailableSize,
+		Action:        pool.Action,
+	}
+}
+
 func reformatPBReqtoModelVolume(contents *pb.ReqVolumeHandler, volume *model.Volume) {
 	pbVolume := contents.GetVolume()
 	onlysize := strings.Split(pbVolume.GetSize(), "G")
@@ -46,6 +91,18 @@ func reformatPBReqtoModelVolume(contents *pb.ReqVolumeHandler, volume *model.Vol
 	volume.UserUUID = pbVolume.GetUserUUID()
 	volume.NetworkIP = pbVolume.GetNetwork_IP()
 	volume.GatewayIP = pbVolume.GetGatewayIp()
+}
+
+func reformatPBReqtoModelPool(contents *pb.ReqPoolHandler, pool *model.Pool) {
+	pbPool := contents.GetPool()
+	pool.UUID = pbPool.GetUUID()
+	pool.Size = pbPool.GetSize()
+	pool.Free = pbPool.GetFree()
+	pool.Capacity = pbPool.GetCapacity()
+	pool.Health = pbPool.GetHealth()
+	pool.Name = pbPool.GetName()
+	pool.AvailableSize = pbPool.GetAvailableSize()
+	pool.Action = pbPool.GetAction()
 }
 
 func createAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorStack {
@@ -229,7 +286,7 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 
 	reformatPBReqtoModelVolume(contents, &modelVolume)
 	retPbVolume := reformatPBReqtoPBVolume(contents)
-	logger.Logger.Println("Resolving: create_volume")
+	logger.Logger.Println("Resolving: Volume Handle")
 	if retPbVolume.ServerUUID == "" || retPbVolume.UserUUID == "" {
 		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID + "\n User : " + retPbVolume.UserUUID + "}"})
 		goto ERROR
@@ -274,11 +331,30 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr})
 			goto ERROR
 		}
-
+		errcode, tempVolume := dao.ReadVolume(&modelVolume)
+		if tempVolume.UUID == "" {
+			errStr := "Error DB : " + modelVolume.UUID + " is Not Exist"
+			logger.Logger.Println()
+			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errStr})
+			goto ERROR
+		}
+		retPbVolume = reformatModelVolumetoPBVolume(&tempVolume)
 		logger.Logger.Println("[Create Volume] Success ")
 
 	case "read":
+		if retPbVolume.UUID == "" {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID})
+			goto ERROR
+		}
 
+		errcode, tempVolume := dao.ReadVolume(&modelVolume)
+		if tempVolume.UUID == "" {
+			errStr := "Error DB : " + modelVolume.UUID + " is Not Exist"
+			logger.Logger.Println()
+			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errStr})
+			goto ERROR
+		}
+		retPbVolume = reformatModelVolumetoPBVolume(&tempVolume)
 	case "update":
 
 	case "delete":
@@ -307,13 +383,6 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 
 		logger.Logger.Println("[Delete Volume] Success ")
 
-		// errcode, errstr := dao.ReadVolume(&modelVolume)
-		// if errstr != "" {
-		// 	logger.Logger.Println("Error DB : ", errstr)
-		// 	errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errstr})
-		// 	goto ERROR
-		// }
-
 	default:
 		errstr := "Invalid Action : " + retPbVolume.Action
 		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: errstr})
@@ -328,4 +397,77 @@ ERROR:
 	})
 
 	return nil, errStack.ConvertReportForm()
+}
+
+func PoolHandler(contents *pb.ReqPoolHandler) (*pb.Pool, *hccerr.HccErrorStack) {
+	var err error
+	var uuid string
+	errStack := hccerr.NewHccErrorStack()
+	var modelPool model.Pool
+
+	reformatPBReqtoModelPool(contents, &modelPool)
+	retPbPool := reformatPBReqtoPBPool(contents)
+	logger.Logger.Println("Resolving: Pool Handle")
+	// if retPbPool.Name == "" {
+	// 	errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid Pool name : " + retPbPool.Name + "}"})
+	// 	goto ERROR
+	// }
+	err = ReloadAllofVolInfo()
+	if err != nil {
+		errStack.Push(&hccerr.HccError{ErrText: "Can't Preload "})
+		logger.Logger.Println("Preload", errStack)
+		goto ERROR
+	}
+	err = handler.ReloadPoolObject()
+	if err != nil {
+		errStack.Push(&hccerr.HccError{ErrText: "Can't Reload Object"})
+		logger.Logger.Println("ReloadPoolObject", errStack)
+		goto ERROR
+	}
+
+	switch strings.ToLower(retPbPool.Action) {
+	case "create":
+
+		out, err := gouuid.NewV4()
+		if err != nil {
+			logger.Logger.Println("[VolumeHandler]Can't Create Volume UUID : ", err)
+			goto ERROR
+		}
+		uuid = out.String()
+
+		modelPool.UUID = uuid
+		retPbPool.UUID = modelPool.UUID
+
+	case "read":
+
+		for _, args := range formatter.PoolObjectMap.PoolMap {
+			// if retPbPool.Name == args.Name {
+			retPbPool.AvailableSize = args.AvailableSize
+			retPbPool.Capacity = args.Capacity
+			retPbPool.Free = strings.Trim(strings.TrimSpace(args.Free), "GTBM")
+			retPbPool.Size = args.Size
+			retPbPool.Health = args.Health
+			retPbPool.Name = args.Name
+			// }
+		}
+		fmt.Println("READ : ", retPbPool)
+	case "update":
+
+	case "delete":
+
+	default:
+		errstr := "Invalid Action : " + retPbPool.Action
+		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: errstr})
+	}
+	logger.Logger.Println("retPbPool : ", retPbPool)
+	return retPbPool, errStack.ConvertReportForm()
+
+ERROR:
+	errStack.Push(&hccerr.HccError{
+		ErrCode: hccerr.CelloInternalVolumeHandleError,
+		ErrText: "PoolHandler(): Failed to handle Pool",
+	})
+
+	return nil, errStack.ConvertReportForm()
+
 }
