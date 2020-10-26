@@ -9,11 +9,13 @@ import (
 )
 
 type Pool struct {
-	Size     string
-	Free     string
-	Capacity string
-	Health   string
-	Name     string
+	UUID          string
+	Size          string
+	Free          string
+	Capacity      string
+	Health        string
+	Name          string
+	AvailableSize string
 }
 
 type Volpool struct {
@@ -123,6 +125,7 @@ func (m *Volpool) PutPool(pool Pool) {
 		m.PoolMap[pool.Name].Health = pool.Health
 		m.PoolMap[pool.Name].Size = pool.Size
 		m.PoolMap[pool.Name].Name = pool.Name
+		m.PoolMap[pool.Name].AvailableSize = pool.AvailableSize
 	} else {
 		fmt.Println("Pool Obj Can't put in structure")
 	}

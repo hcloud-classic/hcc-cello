@@ -11,7 +11,7 @@ import (
 )
 
 // ReadVolume : Single Volume info
-func ReadVolume(in *model.Volume) (interface{}, error) {
+func ReadVolume(in *model.Volume) (uint64, model.Volume) {
 	var volume model.Volume
 	var err error
 	uuid := in.UUID
@@ -38,7 +38,7 @@ func ReadVolume(in *model.Volume) (interface{}, error) {
 		&createdAt)
 	if err != nil {
 		logger.Logger.Println(err)
-		return nil, err
+		return hccerr.CelloSQLOperationFail, volume
 	}
 
 	volume.UUID = uuid
@@ -51,7 +51,7 @@ func ReadVolume(in *model.Volume) (interface{}, error) {
 	volume.Pool = pool
 	volume.CreatedAt = createdAt
 
-	return volume, nil
+	return 0, volume
 }
 
 func checkVolumePageRow(args map[string]interface{}) bool {
