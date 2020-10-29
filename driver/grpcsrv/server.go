@@ -343,8 +343,22 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 		retPbVolume = reformatModelVolumetoPBVolume(&tempVolume)
 		logger.Logger.Println("[Create Volume] Success ")
 
-	case "read":
+	case "read_single":
 		if retPbVolume.UUID == "" {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID})
+			goto ERROR
+		}
+
+		errcode, tempVolume := dao.ReadVolume(&modelVolume)
+		if tempVolume.UUID == "" {
+			errStr := "Error DB : " + modelVolume.UUID + " is Not Exist"
+			logger.Logger.Println()
+			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errStr})
+			goto ERROR
+		}
+		retPbVolume = reformatModelVolumetoPBVolume(&tempVolume)
+	case "read_list":
+		if retPbVolume.ServerUUID == "" {
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID})
 			goto ERROR
 		}

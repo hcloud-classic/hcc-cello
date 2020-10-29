@@ -77,9 +77,11 @@ func ReloadPoolObject() error {
 				}
 			}
 			convIntPoolSize, _ := strconv.ParseFloat(strings.Trim(strings.TrimSpace(poolobj.Size), "GTBM"), 64)
+
 			if strings.Contains(poolobj.Size, "T") {
 				convIntPoolSize *= 1024
 			}
+			poolobj.Size = strconv.Itoa(int(math.Floor(convIntPoolSize)))
 			poolobj.AvailableSize = strconv.Itoa(int(math.Floor(convIntPoolSize - float64(intSize))))
 
 			poolobj.Used = strconv.Itoa(intSize)
