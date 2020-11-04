@@ -7,6 +7,7 @@ import (
 	"hcc/cello/lib/formatter"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
+	"math"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -43,6 +44,11 @@ func ReloadPoolObject() error {
 
 			}
 			poolobj.Free = string(result)
+			convIntPoolFree, _ := strconv.ParseFloat(strings.Trim(strings.TrimSpace(poolobj.Free), "GTBM"), 64)
+			if strings.Contains(poolobj.Free, "T") {
+				convIntPoolFree *= 1024
+			}
+			poolobj.Free = strconv.Itoa(int(math.Floor(convIntPoolFree)))
 
 			act = "zpool list -H -o capacity " + args
 			cmd = exec.Command("/bin/bash", "-c", act)
@@ -64,6 +70,23 @@ func ReloadPoolObject() error {
 			}
 			poolobj.Size = string(result)
 
+			var intSize int
+			for _, domainArgs := range formatter.VolObjectMap.Domain {
+				for _, singleLun := range domainArgs.Lun {
+					intSize += singleLun.Size
+				}
+			}
+			convIntPoolSize, _ := strconv.ParseFloat(strings.Trim(strings.TrimSpace(poolobj.Size), "GTBM"), 64)
+
+			if strings.Contains(poolobj.Size, "T") {
+				convIntPoolSize *= 1024
+			}
+			poolobj.Size = strconv.Itoa(int(math.Floor(convIntPoolSize)))
+			poolobj.AvailableSize = strconv.Itoa(int(math.Floor(convIntPoolSize - float64(intSize))))
+
+			poolobj.Used = strconv.Itoa(intSize)
+			fmt.Println("convIntPoolSize : ", convIntPoolSize, " intSize: ", poolobj.Used)
+
 			act = "zpool list -H -o health " + args
 			cmd = exec.Command("/bin/bash", "-c", act)
 			result, err = cmd.CombinedOutput()
@@ -75,6 +98,7 @@ func ReloadPoolObject() error {
 			poolobj.Health = string(result)
 
 			poolobj.Name = args
+			// act = "zfs get -H -o value available master/volpool-1"
 			fmt.Println("pool => ", poolobj)
 			formatter.PoolObjectMap.PutPool(poolobj)
 		}
@@ -94,7 +118,7 @@ func PreLoad() {
 	for _, args := range formatter.GlobalVolumesDB {
 		lunNum := addVolObejct(args)
 		if lunNum == "" {
-			strerr := "Create ZFS(Lun Numbering) : Faild )"
+			strerr := " ZFS(Lun Numbering) : Faild )"
 			logger.Logger.Println(strerr)
 			removeVolObejct(args)
 		}
@@ -103,7 +127,7 @@ func PreLoad() {
 
 func addVolObejct(volume model.Volume) string {
 	var lunNum string
-	if formatter.VolObjectMap.Domain[volume.ServerUUID] == nil && strings.ToUpper(volume.UseType) != "DATA" {
+	if formatter.VolObjectMap.Domain[volume.ServerUUID] == nil {
 		formatter.VolObjectMap.PutDomain(volume.ServerUUID)
 	}
 	if formatter.VolObjectMap.Domain[volume.ServerUUID] != nil {
@@ -126,7 +150,7 @@ func CreateVolume(volume model.Volume) (bool, interface{}) {
 	lunNum := addVolObejct(volume)
 	logger.Logger.Println("Codex :\n", volume, "\n Lunnum: ", lunNum)
 	if lunNum == "" {
-		strerr := "Create ZFS(Lun Numbering) : Faild )"
+		strerr := " ZFS(Lun Numbering) : Faild )"
 		logger.Logger.Println(strerr)
 		// lunInt, _ := strconv.Atoi(lunNum)
 		removeVolObejct(volume)
@@ -134,19 +158,19 @@ func CreateVolume(volume model.Volume) (bool, interface{}) {
 	}
 	volume.LunNum, _ = strconv.Atoi(lunNum)
 	if volume.UseType == "os" {
-		createcheck, err := clonezvol(volume)
-		if !createcheck {
+		check, err := clonezvol(volume)
+		if !check {
 			// lunInt, _ := strconv.Atoi(lunNum)
 			removeVolObejct(volume)
-			logger.Logger.Println("Create ZFS(OS) : Faild")
+			logger.Logger.Println(" ZFS(OS) : Faild")
 			return false, err
 		}
 	} else {
-		createcheck, err := createzvol(volume)
-		if !createcheck {
+		check, err := createzvol(volume)
+		if !check {
 			// lunInt, _ := strconv.Atoi(lunNum)
 			removeVolObejct(volume)
-			logger.Logger.Println("Create ZFS(DATA) : Faild")
+			logger.Logger.Println(" ZFS(DATA) : Faild")
 			return false, err
 		}
 	}
@@ -165,7 +189,7 @@ func DeleteVolumeObj(volume model.Volume) (bool, interface{}) {
 			logger.Logger.Println("Delete OS Volume Failed")
 			return false, nil
 		}
-		fmt.Println("[Debug] : ", ejectDomain)
+		// fmt.Println("[Debug] : ", ejectDomain)
 		return true, ejectDomain
 	} else {
 		lunStructure, _ := formatter.VolObjectMap.GetIscsiLun(volume)
@@ -204,11 +228,14 @@ func createzvol(volume model.Volume) (bool, interface{}) {
 	volname := formatter.VolNameBuilder(volume) + "-" + strconv.Itoa(volume.LunNum)
 	convertSize := strconv.Itoa(volume.Size) + "G"
 	volblocksize := "volblocksize=" + "4096"
-	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, volname)
+	refquota := "refreservation=none"
+	compression := "compression=on"
+	reservation := "reservation=" + convertSize
+	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, "-o", refquota, "-o", reservation, "-o", compression, volname)
 
 	result, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Logger.Println("createzvol : ", result, " ", err, " : ", cmd)
+		logger.Logger.Println("zvol : ", result, " ", err, " : ", cmd)
 		return false, err
 	}
 
@@ -238,7 +265,7 @@ func clonezvol(volume model.Volume) (bool, interface{}) {
 func createzfs(volume model.Volume) (bool, interface{}) {
 	volname := formatter.VolNameBuilder(volume)
 	mountpath := "mountpoint=" + defaultdir + "/" + volname
-	cmd := exec.Command("zfs", "create", "-o", mountpath, volname)
+	cmd := exec.Command("zfs", "", "-o", mountpath, volname)
 
 	result, err := cmd.CombinedOutput()
 	if err != nil {
@@ -273,11 +300,12 @@ func AvailablePoolCheck() string {
 			min = args.Free
 			poolname = args.Name
 		}
+		fmt.Println(args.Name)
 	}
 	if poolname == "" {
 		logger.Logger.Println("There Is No Available Pool")
 	}
-
+	fmt.Println("############## ", poolname)
 	return poolname
 }
 
@@ -302,5 +330,25 @@ func QuotaCheck(ServerUUID string) (bool, interface{}) {
 // UpdateVolume :
 // TODO : Implement update volume
 func UpdateVolume() {
+
+}
+
+func round(x, unit float64) float64 {
+	return math.Round(x/unit) * unit
+}
+
+// convertRealPoolSize : Calculate Real Pool size, 2GB => 1.862645149230957 ==1.85
+func convertRealPoolSize(size int) float64 {
+	convFloatSize := float64(size)
+	floatResult := float64(convFloatSize * 1000 * 1000 * 1000 / 1024 / 1024 / 1024)
+	return round(floatResult, 0.05)
+
+}
+
+// convertRealVolumeSize : For  Volume quota
+func convertRealVolumeSize(size int) float64 {
+	convFloatSize := float64(size)
+	floatResult := float64(convFloatSize * 1000 * 1000 / 1024 / 1024)
+	return round(floatResult, 0.05)
 
 }

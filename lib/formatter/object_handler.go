@@ -9,11 +9,14 @@ import (
 )
 
 type Pool struct {
-	Size     string
-	Free     string
-	Capacity string
-	Health   string
-	Name     string
+	UUID          string
+	Size          string
+	Free          string
+	Capacity      string
+	Health        string
+	Name          string
+	AvailableSize string
+	Used          string
 }
 
 type Volpool struct {
@@ -123,6 +126,8 @@ func (m *Volpool) PutPool(pool Pool) {
 		m.PoolMap[pool.Name].Health = pool.Health
 		m.PoolMap[pool.Name].Size = pool.Size
 		m.PoolMap[pool.Name].Name = pool.Name
+		m.PoolMap[pool.Name].AvailableSize = pool.AvailableSize
+		m.PoolMap[pool.Name].Used = pool.Used
 	} else {
 		fmt.Println("Pool Obj Can't put in structure")
 	}
@@ -170,8 +175,14 @@ func (m *IscsiMap) SetIscsiLun(volume model.Volume) string {
 			templLun.Order = 0
 
 		} else {
-			templLun.Order = m.Domain[volume.ServerUUID].Lun[lunNuber-1].Order + 1
-			templLun.Path += strconv.Itoa(templLun.Order)
+			if volume.LunNum > 0 {
+				templLun.Order = volume.LunNum
+				templLun.Path += strconv.Itoa(templLun.Order)
+			} else {
+				templLun.Order = m.Domain[volume.ServerUUID].Lun[lunNuber-1].Order + 1
+				templLun.Path += strconv.Itoa(templLun.Order)
+
+			}
 		}
 
 		// m.Domain[volume.ServerUUID].Lun[lunNuber].Path = templLun.Path
