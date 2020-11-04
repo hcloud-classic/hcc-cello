@@ -189,7 +189,7 @@ func DeleteVolumeObj(volume model.Volume) (bool, interface{}) {
 			logger.Logger.Println("Delete OS Volume Failed")
 			return false, nil
 		}
-		fmt.Println("[Debug] : ", ejectDomain)
+		// fmt.Println("[Debug] : ", ejectDomain)
 		return true, ejectDomain
 	} else {
 		lunStructure, _ := formatter.VolObjectMap.GetIscsiLun(volume)
@@ -229,8 +229,9 @@ func createzvol(volume model.Volume) (bool, interface{}) {
 	convertSize := strconv.Itoa(volume.Size) + "G"
 	volblocksize := "volblocksize=" + "4096"
 	refquota := "refreservation=none"
+	compression := "compression=on"
 	reservation := "reservation=" + convertSize
-	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, "-o", refquota, "-o", reservation, volname)
+	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, "-o", refquota, "-o", reservation, "-o", compression, volname)
 
 	result, err := cmd.CombinedOutput()
 	if err != nil {

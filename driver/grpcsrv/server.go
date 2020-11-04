@@ -68,6 +68,28 @@ func reformatModelVolumetoPBVolume(volume *model.Volume) *pb.Volume {
 	}
 }
 
+func reformatModelVolumetoPBVolumeList(volume *[]model.Volume) []*pb.Volume {
+	var retVol []*pb.Volume
+
+	for _, args := range *volume {
+		tempPbVol := pb.Volume{
+			UUID:       args.UUID,
+			Size:       strconv.Itoa(args.Size),
+			Filesystem: args.Filesystem,
+			ServerUUID: args.ServerUUID,
+			UseType:    args.UseType,
+			UserUUID:   args.UserUUID,
+			Network_IP: args.NetworkIP,
+			GatewayIp:  args.GatewayIP,
+			Pool:       args.Pool,
+			Lun:        int64(args.LunNum),
+			CreatedAt:  &timestamp.Timestamp{Seconds: args.CreatedAt.Unix(), Nanos: int32(args.CreatedAt.Nanosecond())},
+		}
+		retVol = append(retVol, &tempPbVol)
+	}
+	return retVol
+}
+
 func reformatModelPooltoPBPool(pool *model.Pool) *pb.Pool {
 	return &pb.Pool{
 		UUID:          pool.UUID,
@@ -110,7 +132,7 @@ func reformatPBReqtoModelPool(contents *pb.ReqPoolHandler, pool *model.Pool) {
 func createAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorStack {
 	errStack := hccerr.NewHccErrorStack()
 
-	if pbVolume.UseType == "" || pbVolume.Filesystem == "" || pbVolume.Network_IP == "" || pbVolume.GatewayIp == "" {
+	if pbVolume.UseType == "" {
 		if errStack != nil {
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError})
 			goto ERROR
@@ -129,7 +151,10 @@ func createAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 
 	if volume.UseType == "os" {
 		logger.Logger.Println("ActionHandle: Creating OS volume")
-
+		if pbVolume.Filesystem == "" || pbVolume.Network_IP == "" || pbVolume.GatewayIp == "" {
+			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError, ErrText: "Failed : Filesystem, Network_IP, GatewayIp Check!"})
+			goto ERROR
+		}
 		createstatus, err := handler.CreateVolume(*volume)
 		if !createstatus {
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError})
@@ -155,7 +180,14 @@ func createAction(pbVolume *pb.Volume, volume *model.Volume) *hccerr.HccErrorSta
 
 	if pbVolume.UseType == "data" {
 		logger.Logger.Println("ActionHandle: Creating data volume")
-
+		if volume.Filesystem == "" {
+			for _, args := range formatter.GlobalVolumesDB {
+				if args.ServerUUID == volume.ServerUUID {
+					volume.Filesystem = args.Filesystem
+					break
+				}
+			}
+		}
 		createstatus, err := handler.CreateVolume(*volume)
 		lunNum := err.(string)
 		volume.LunNum, _ = strconv.Atoi(lunNum)
@@ -190,13 +222,13 @@ func deleteAction(pbVolume *pb.Volume, volume *model.Volume) ([]formatter.Lun, *
 	var retLunList []formatter.Lun
 	errStack := hccerr.NewHccErrorStack()
 
-	if pbVolume.UseType == "" || pbVolume.Filesystem == "" || pbVolume.ServerUUID == "" {
+	if pbVolume.UseType == "" || pbVolume.ServerUUID == "" {
 		if errStack != nil {
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError})
 			goto ERROR
 		}
 	}
-	logger.Logger.Println("ActionHandle: Delete OS volume")
+	logger.Logger.Println("ActionHandle: Delete  volume")
 
 	switch strings.ToLower(volume.UseType) {
 	case "os":
@@ -227,7 +259,14 @@ func deleteAction(pbVolume *pb.Volume, volume *model.Volume) ([]formatter.Lun, *
 		}
 
 	case "data":
-
+		if volume.Filesystem == "" {
+			for _, args := range formatter.GlobalVolumesDB {
+				if args.ServerUUID == volume.ServerUUID {
+					volume.Filesystem = args.Filesystem
+					break
+				}
+			}
+		}
 		deleteObjStatus, err := handler.DeleteVolumeObj(*volume)
 		if !deleteObjStatus {
 			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloInternalCreateVolumeError})
@@ -289,7 +328,7 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 	reformatPBReqtoModelVolume(contents, &modelVolume)
 	retPbVolume := reformatPBReqtoPBVolume(contents)
 	logger.Logger.Println("Resolving: Volume Handle")
-	if retPbVolume.ServerUUID == "" || retPbVolume.UserUUID == "" {
+	if retPbVolume.ServerUUID == "" {
 		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID + "\n User : " + retPbVolume.UserUUID + "}"})
 		goto ERROR
 	}
@@ -357,20 +396,7 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 			goto ERROR
 		}
 		retPbVolume = reformatModelVolumetoPBVolume(&tempVolume)
-	case "read_list":
-		if retPbVolume.ServerUUID == "" {
-			errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID})
-			goto ERROR
-		}
 
-		errcode, tempVolume := dao.ReadVolume(&modelVolume)
-		if tempVolume.UUID == "" {
-			errStr := "Error DB : " + modelVolume.UUID + " is Not Exist"
-			logger.Logger.Println()
-			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errStr})
-			goto ERROR
-		}
-		retPbVolume = reformatModelVolumetoPBVolume(&tempVolume)
 	case "update":
 
 	case "delete":
@@ -415,6 +441,75 @@ ERROR:
 	return nil, errStack.ConvertReportForm()
 }
 
+// GetPoolList : pool list
+func GetPoolList(contents *pb.ReqGetPoolList) ([]*pb.Pool, *hccerr.HccErrorStack) {
+	var err error
+	errStack := hccerr.NewHccErrorStack()
+	var retPbPoolList []*pb.Pool
+	singlePbPool := contents.GetPool()
+	retPbPool := &pb.Pool{
+		UUID:          singlePbPool.GetUUID(),
+		Size:          singlePbPool.GetSize(),
+		Free:          singlePbPool.GetFree(),
+		Capacity:      singlePbPool.GetCapacity(),
+		Health:        singlePbPool.GetHealth(),
+		Name:          singlePbPool.GetName(),
+		AvailableSize: singlePbPool.GetAvailableSize(),
+		Action:        singlePbPool.GetAction(),
+		Used:          singlePbPool.GetUsed(),
+	}
+	logger.Logger.Println("Resolving: Pool Handle")
+	// if retPbPool.Name == "" {
+	// 	errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid Pool name : " + retPbPool.Name + "}"})
+	// 	goto ERROR
+	// }
+	err = ReloadAllofVolInfo()
+	if err != nil {
+		errStack.Push(&hccerr.HccError{ErrText: "Can't Preload "})
+		logger.Logger.Println("Preload", errStack)
+		goto ERROR
+	}
+	err = handler.ReloadPoolObject()
+	if err != nil {
+		errStack.Push(&hccerr.HccError{ErrText: "Can't Reload Object"})
+		logger.Logger.Println("ReloadPoolObject", errStack)
+		goto ERROR
+	}
+
+	switch strings.ToLower(retPbPool.Action) {
+
+	case "read":
+
+		for _, args := range formatter.PoolObjectMap.PoolMap {
+			if strings.Contains(args.Name, config.VolumeConfig.VOLUMEPOOL) {
+				var tempretPbPool pb.Pool
+				tempretPbPool.AvailableSize = args.AvailableSize
+				tempretPbPool.Capacity = args.Capacity
+				tempretPbPool.Free = args.Free
+				tempretPbPool.Size = args.Size
+				tempretPbPool.Health = args.Health
+				tempretPbPool.Name = args.Name
+				tempretPbPool.Used = args.Used
+				retPbPoolList = append(retPbPoolList, &tempretPbPool)
+			}
+		}
+
+	default:
+		errstr := "Invalid Action : " + retPbPool.Action
+		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: errstr})
+	}
+	logger.Logger.Println("retPbPoolList : ", retPbPoolList)
+
+	return retPbPoolList, errStack.ConvertReportForm()
+
+ERROR:
+	errStack.Push(&hccerr.HccError{
+		ErrCode: hccerr.CelloInternalVolumeHandleError,
+		ErrText: "PoolHandler(): Failed to handle Pool",
+	})
+
+	return nil, errStack.ConvertReportForm()
+}
 func PoolHandler(contents *pb.ReqPoolHandler) (*pb.Pool, *hccerr.HccErrorStack) {
 	var err error
 	var uuid string
@@ -459,7 +554,7 @@ func PoolHandler(contents *pb.ReqPoolHandler) (*pb.Pool, *hccerr.HccErrorStack) 
 		for _, args := range formatter.PoolObjectMap.PoolMap {
 			fmt.Println("formatter.PoolObjectMap.PoolMap\n\n", args)
 
-			if args.Name == config.VolumeConfig.VOLUMEPOOL {
+			if strings.Contains(args.Name, config.VolumeConfig.VOLUMEPOOL) {
 				retPbPool.AvailableSize = args.AvailableSize
 				retPbPool.Capacity = args.Capacity
 				retPbPool.Free = args.Free
@@ -469,6 +564,7 @@ func PoolHandler(contents *pb.ReqPoolHandler) (*pb.Pool, *hccerr.HccErrorStack) 
 				retPbPool.Used = args.Used
 			}
 		}
+
 	case "update":
 
 	case "delete":
@@ -488,4 +584,73 @@ ERROR:
 
 	return nil, errStack.ConvertReportForm()
 
+}
+
+//GetVolumeList : Manipulate Volume Create
+func GetVolumeList(contents *pb.ReqGetVolumeList) ([]*pb.Volume, *hccerr.HccErrorStack) {
+	var err error
+	errStack := hccerr.NewHccErrorStack()
+	var modelVolume model.Volume
+	tempContents := contents.GetVolume()
+	// modelVolume.ServerUUID = contents
+	// retPbVolume := reformatPBReqtoPBVolume(contents)
+	var retPbVolumeList []*pb.Volume
+	logger.Logger.Println("Resolving: GetVolumeList ", tempContents.ServerUUID, tempContents.UUID)
+	if tempContents.ServerUUID == "" {
+		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + contents.GetVolume().ServerUUID + "\n User : " + contents.GetVolume().UserUUID + "}"})
+		goto ERROR
+	}
+	err = ReloadAllofVolInfo()
+	if err != nil {
+		errStack.Push(&hccerr.HccError{ErrText: "Can't Preload "})
+		logger.Logger.Println("Preload", errStack)
+		goto ERROR
+	}
+	err = handler.ReloadPoolObject()
+	if err != nil {
+		errStack.Push(&hccerr.HccError{ErrText: "Can't Reload Object"})
+		logger.Logger.Println("ReloadPoolObject", errStack)
+		goto ERROR
+	}
+	switch strings.ToLower(tempContents.Action) {
+	case "create":
+
+	case "read_list":
+
+		// if tempContents.UserUUID == "" {
+		// 	errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + contents.GetVolume().ServerUUID})
+		// 	goto ERROR
+		// }
+		modelVolume.ServerUUID = tempContents.ServerUUID
+		if tempContents.UserUUID != "" {
+			modelVolume.UserUUID = tempContents.UserUUID
+		}
+		fmt.Println("Codex : ", int(contents.GetRow()), int(contents.GetPage()))
+		errcode, tempVolume := dao.ReadVolumeList(&modelVolume, int(contents.GetRow()), int(contents.GetPage()))
+		if tempVolume == nil {
+			errStr := "Error DB : " + modelVolume.UUID + " is Not Exist"
+			logger.Logger.Println()
+			errStack.Push(&hccerr.HccError{ErrCode: errcode, ErrText: errStr})
+			goto ERROR
+		}
+		retPbVolumeList = reformatModelVolumetoPBVolumeList(&tempVolume)
+
+	case "update":
+
+	case "delete":
+
+	default:
+		errstr := "Invalid Action : " + contents.GetVolume().Action
+		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: errstr})
+	}
+	logger.Logger.Println("retPbVolumeList : ", retPbVolumeList)
+	return retPbVolumeList, errStack.ConvertReportForm()
+
+ERROR:
+	errStack.Push(&hccerr.HccError{
+		ErrCode: hccerr.CelloInternalVolumeHandleError,
+		ErrText: "VolumeHandler(): Failed to handle volume",
+	})
+
+	return nil, errStack.ConvertReportForm()
 }

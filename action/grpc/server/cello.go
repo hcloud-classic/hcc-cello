@@ -62,3 +62,25 @@ func (s *celloServer) PoolHandler(_ context.Context, in *pb.ReqPoolHandler) (*pb
 
 	return &pb.ResPoolHandler{Pool: pool}, nil
 }
+
+func (s *celloServer) GetVolumeList(_ context.Context, in *pb.ReqGetVolumeList) (*pb.ResGetVolumeList, error) {
+	logger.Logger.Println("Request received: GetVolumeList()")
+	// fmt.Println("Grpc : \n", &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(nil)})
+	volumeList, errStack := grpcsrv.GetVolumeList(in)
+	if volumeList == nil {
+		return &pb.ResGetVolumeList{Volume: nil, HccErrorStack: errconv.HccStackToGrpc(errStack)}, nil
+	}
+
+	return &pb.ResGetVolumeList{Volume: volumeList}, nil
+}
+
+func (s *celloServer) GetPoolList(_ context.Context, in *pb.ReqGetPoolList) (*pb.ResGetPoolList, error) {
+	logger.Logger.Println("Request received: GetPoolList()")
+	// fmt.Println("Grpc : \n", &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(nil)})
+	pool, errStack := grpcsrv.GetPoolList(in)
+	if pool == nil {
+		return &pb.ResGetPoolList{Pool: nil, HccErrorStack: errconv.HccStackToGrpc(errStack)}, nil
+	}
+
+	return &pb.ResGetPoolList{Pool: pool}, nil
+}
