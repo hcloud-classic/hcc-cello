@@ -62,63 +62,90 @@ func checkVolumePageRow(args map[string]interface{}) bool {
 }
 
 // ReadVolumeList - cgs
-func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
+func ReadVolumeList(in *model.Volume, row int, page int) (uint64, []model.Volume) {
 	var err error
 	var volumes []model.Volume
 	var requestUUID string
 	var createdAt time.Time
 
-	size, sizeOk := args["size"].(int)
-	filesystem, filesystemOk := args["filesystem"].(string)
-	serverUUID, serverUUIDOk := args["server_uuid"].(string)
-	useType, useTypeOk := args["use_type"].(string)
-	userUUID, userUUIDOk := args["user_uuid"].(string)
+	var size int
+	var filesystem string
+	var serverUUID string
+	var useType string
+	var userUUID string
+	var lunNum int
+	var pool string
 
-	row, _ := args["row"].(int)
-	page, _ := args["page"].(int)
-	if checkVolumePageRow(args) {
-		return nil, errors.New("need row and page arguments")
+	if in.ServerUUID != "" {
+		serverUUID = in.ServerUUID
 	}
-
+	if in.UserUUID != "" {
+		userUUID = in.UserUUID
+	}
+	// sql := "select * from volume "
 	sql := "select * from volume where 1=1"
-	if sizeOk {
-		sql += " and size = " + strconv.Itoa(size)
-	}
-	if filesystemOk {
-		sql += " and filesystem = '" + filesystem + "'"
-	}
-	if serverUUIDOk {
-		sql += " and server_uuid = '" + serverUUID + "'"
-	}
-	if useTypeOk {
-		sql += " and use_type = '" + useType + "'"
-	}
-	if userUUIDOk {
-		sql += " and user_uuid = '" + userUUID + "'"
-	}
+	// if in.Size != "" {
+	// sql += " and size = '1'"
+	// }
+	// if filesystemOk {
+	// 	sql += " and filesystem = '" + filesystem + "'"
+	// }
+	// if serverUUIDOk {
+	sql += " and server_uuid = '" + serverUUID + "'"
+	// }
+	// if useTypeOk {
+	// 	sql += " and use_type = '" + useType + "'"
+	// }
+	// if userUUIDOk {
+	// sql += " and user_uuid = '" + userUUID + "'"
+	// }
 
-	sql += " order by created_at desc limit ? offset ?"
+	sql += " order by created_at asc limit ? offset ?"
+	// sql += " order by created_at "
 
-	stmt, err := mysql.Db.Query(sql, row, row*(page-1))
+	stmt, err := mysql.Db.Query(sql, row, 0)
+	// stmt, err := mysql.Db.Query(sql)
+
+	// logger.Logger.Println(err.Error())
 	if err != nil {
-		logger.Logger.Println(err.Error())
-		return nil, err
+		return hccerr.CelloSQLOperationFail, volumes
 	}
 	defer func() {
 		_ = stmt.Close()
 	}()
 
 	for stmt.Next() {
-		err := stmt.Scan(&requestUUID, &size, &filesystem, &serverUUID, &useType, &userUUID, &createdAt)
+
+		err := stmt.Scan(
+			&requestUUID,
+			&size,
+			&filesystem,
+			&serverUUID,
+			&useType,
+			&userUUID,
+			&lunNum,
+			&pool,
+			&createdAt)
+
 		if err != nil {
-			logger.Logger.Println(err.Error())
-			return nil, err
+			logger.Logger.Println(sql, err.Error())
+			return hccerr.CelloSQLOperationFail, volumes
 		}
-		volume := model.Volume{UUID: requestUUID, Size: size, Filesystem: filesystem, ServerUUID: serverUUID, UseType: useType, UserUUID: userUUID, CreatedAt: createdAt}
+		volume := model.Volume{
+			UUID:       requestUUID,
+			Size:       size,
+			Filesystem: filesystem,
+			ServerUUID: serverUUID,
+			UseType:    useType,
+			UserUUID:   userUUID,
+			CreatedAt:  createdAt,
+			Pool:       pool,
+			LunNum:     lunNum,
+		}
 		logger.Logger.Println(volume)
 		volumes = append(volumes, volume)
 	}
-	return volumes, nil
+	return 0, volumes
 }
 
 // ReadVolumeAll - cgs

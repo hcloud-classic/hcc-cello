@@ -1,7 +1,69 @@
 //// url
 http://localhost:8001/graphql
+[Get Token]
+query {
+  login(id:"jolla", password:"$2y$10$7FQZM5t8Sh5J9nsfP..4WuizpB08CuO7jYnNiNwB68hpy7ruEQkAG") {
+    token
+    errors {
+      errcode
+      errtext
+    }
+  }
+}
+[New GraphQL]
+query {
+  pool_list(row:10,page:1,user_uuid:"codex",token:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJRCI6ImpvbGxhIiwiUGFzc3dvcmQiOiIkMnkkMTAkN0ZRWk01dDhTaDVKOW5zZlAuLjRXdWl6cEIwOEN1TzdqWW5OaU53QjY4aHB5N3J1RVFrQUciLCJleHAiOjE2MDQ1NjAyNjAsImlhdCI6MTYwNDQ3Mzg2MCwiaXNzIjoicGljY29sbyIsInN1YiI6IkF1dGgifQ.FA1pfRD2BStwnfBVX2Sy4Umb7al2uWgRKFk6IlgnD5s"){
+    pool_list {
+      Action
+      AvailableSize
+      Capacity
+      Health
+      Name
+      Used
+      size
+      uuid
+    }
+    errors {
+      errcode
+      errtext
+    }
+  }
+}
 
 
+// create
+mutation _{
+  volume_handle(action:"create",server_uuid:"c949ecff-18fd-4f63-6911-c9f238c150fc",use_type:"data",size:1,token:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJRCI6ImpvbGxhIiwiUGFzc3dvcmQiOiIkMnkkMTAkN0ZRWk01dDhTaDVKOW5zZlAuLjRXdWl6cEIwOEN1TzdqWW5OaU53QjY4aHB5N3J1RVFrQUciLCJleHAiOjE2MDQ1NjI2MDEsImlhdCI6MTYwNDQ3NjIwMSwiaXNzIjoicGljY29sbyIsInN1YiI6IkF1dGgifQ.Kpk5-5uc-cjMfsb5O9O0q7LUKYy65IsB0BSkk7kDQcA"){
+pool
+    size
+filesystem
+    pool
+    use_type
+    lun_num
+    pool
+    user_uuid
+    uuid
+  }
+}
+// delete
+mutation _{
+  volume_handle(uuid: "",action:"delete",server_uuid:"c949ecff-18fd-4f63-6911-c9f238c150fc",use_type:"data",token:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJRCI6ImpvbGxhIiwiUGFzc3dvcmQiOiIkMnkkMTAkN0ZRWk01dDhTaDVKOW5zZlAuLjRXdWl6cEIwOEN1TzdqWW5OaU53QjY4aHB5N3J1RVFrQUciLCJleHAiOjE2MDQ1NjI2MDEsImlhdCI6MTYwNDQ3NjIwMSwiaXNzIjoicGljY29sbyIsInN1YiI6IkF1dGgifQ.Kpk5-5uc-cjMfsb5O9O0q7LUKYy65IsB0BSkk7kDQcA"){
+pool
+    size
+filesystem
+    pool
+    use_type
+    lun_num
+    pool
+    user_uuid
+    uuid
+  }
+}
+
+
+
+
+[Grpc]
 {
   "volume": {
     "size": "100G",
