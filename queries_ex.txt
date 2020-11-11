@@ -33,7 +33,7 @@ query {
 
 // create
 mutation _{
-  volume_handle(action:"create",server_uuid:"c949ecff-18fd-4f63-6911-c9f238c150fc",use_type:"data",size:1,token:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJRCI6ImpvbGxhIiwiUGFzc3dvcmQiOiIkMnkkMTAkN0ZRWk01dDhTaDVKOW5zZlAuLjRXdWl6cEIwOEN1TzdqWW5OaU53QjY4aHB5N3J1RVFrQUciLCJleHAiOjE2MDQ1NjI2MDEsImlhdCI6MTYwNDQ3NjIwMSwiaXNzIjoicGljY29sbyIsInN1YiI6IkF1dGgifQ.Kpk5-5uc-cjMfsb5O9O0q7LUKYy65IsB0BSkk7kDQcA"){
+  volume_handle(action:"create",server_uuid:"c949ecff-18fd-4f63-6911-c9f238c150fc",use_type:"data",size:1){
 pool
     size
 filesystem
@@ -47,7 +47,7 @@ filesystem
 }
 // delete
 mutation _{
-  volume_handle(uuid: "",action:"delete",server_uuid:"c949ecff-18fd-4f63-6911-c9f238c150fc",use_type:"data",token:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJRCI6ImpvbGxhIiwiUGFzc3dvcmQiOiIkMnkkMTAkN0ZRWk01dDhTaDVKOW5zZlAuLjRXdWl6cEIwOEN1TzdqWW5OaU53QjY4aHB5N3J1RVFrQUciLCJleHAiOjE2MDQ1NjI2MDEsImlhdCI6MTYwNDQ3NjIwMSwiaXNzIjoicGljY29sbyIsInN1YiI6IkF1dGgifQ.Kpk5-5uc-cjMfsb5O9O0q7LUKYy65IsB0BSkk7kDQcA"){
+  volume_handle(uuid: "",action:"delete",server_uuid:"c949ecff-18fd-4f63-6911-c9f238c150fc",use_type:"data"){
 pool
     size
 filesystem

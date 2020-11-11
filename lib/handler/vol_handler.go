@@ -231,11 +231,11 @@ func createzvol(volume model.Volume) (bool, interface{}) {
 	refquota := "refreservation=none"
 	compression := "compression=on"
 	reservation := "reservation=" + convertSize
-	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, "-o", refquota, "-o", reservation, "-o", compression, volname)
 
+	cmd := exec.Command("zfs", "create", "-V", convertSize, "-o", volblocksize, "-o", refquota, "-o", reservation, "-o", compression, volname)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Logger.Println("zvol : ", result, " ", err, " : ", cmd)
+		logger.Logger.Println("createzvol Failed : ", string(result), " ", err.Error(), " : ", cmd)
 		return false, err
 	}
 
@@ -247,17 +247,18 @@ func clonezvol(volume model.Volume) (bool, interface{}) {
 	var originVolName = ""
 	for _, args := range config.VolumeConfig.ORIGINVOL {
 		if strings.Contains(strings.ToLower(args), strings.ToLower(volume.Filesystem)) {
-			originVolName = args
+			originVolName = volume.Pool + "/" + args
 			break
 		}
 	}
+	logger.Logger.Println("clonezvol : [", originVolName, " To ", volname, "]")
 
 	cmd := exec.Command("zfs", "clone", originVolName, volname)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
+		logger.Logger.Println("Clone Failed ", string(result), " err: ", err.Error())
 		return false, err
 	}
-	logger.Logger.Println("clonezvol : [", originVolName, " To ", volname, "]")
 
 	return true, result
 }
