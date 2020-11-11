@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"database/sql"
 	"errors"
 	hccerr "hcc/cello/lib/errors"
 	"hcc/cello/lib/logger"
@@ -161,15 +162,20 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	var lunNum int
 	var pool string
 	var createdAt time.Time
+	var stmt *sql.Rows
 	row, _ := args["row"].(int)
 	page, _ := args["page"].(int)
 	if checkVolumePageRow(args) {
 		return nil, errors.New("need row and page arguments")
 	}
 
-	sql := "select * from cello.volume order by created_at desc limit ? offset ?"
-
-	stmt, err := mysql.Db.Query(sql, row, row*(page-1))
+	if row == 0 && page == 0 {
+		sql := "select * from cello.volume order by created_at desc"
+		stmt, err = mysql.Db.Query(sql)
+	} else {
+		sql := "select * from cello.volume order by created_at desc limit ? offset ?"
+		stmt, err = mysql.Db.Query(sql, row, row*(page-1))
+	}
 	// stmt, err := mysql.Db.Query(sql, row, 0)
 
 	if err != nil {
