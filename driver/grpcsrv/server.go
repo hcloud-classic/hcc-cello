@@ -297,24 +297,26 @@ ERROR:
 	return retLunList, errStack.ConvertReportForm()
 
 }
-func ReloadAllofVolInfo() error {
+func ReloadAllOfVolInfo() error {
 
 	celloParams := make(map[string]interface{})
 	celloParams["row"] = 254
 	celloParams["page"] = 1
 	dbVol, err := dao.ReadVolumeAll(celloParams)
 	if err != nil {
-		fmt.Println("Error")
+		logger.Logger.Println("ReloadAllOfVolInfo(): Failed to read volumes")
+		return err
 	}
 
 	formatter.GlobalVolumesDB = dbVol.([]model.Volume)
-	fmt.Println("ReloadAllofVolInfo", formatter.GlobalVolumesDB)
+	fmt.Println("ReloadAllOfVolInfo", formatter.GlobalVolumesDB)
 	sort.Slice(formatter.GlobalVolumesDB, func(i, j int) bool {
 		return formatter.GlobalVolumesDB[i].LunNum < formatter.GlobalVolumesDB[j].LunNum
 	})
 	handler.PreLoad()
-	fmt.Println("ReloadAllofVolInfo : \n", formatter.VolObjectMap.GetIscsiMap())
-	return err
+	fmt.Println("ReloadAllOfVolInfo : \n", formatter.VolObjectMap.GetIscsiMap())
+
+	return nil
 }
 
 //VolumeHandler : Manipulate Volume Create
@@ -332,7 +334,7 @@ func VolumeHandler(contents *pb.ReqVolumeHandler) (*pb.Volume, *hccerr.HccErrorS
 		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + retPbVolume.ServerUUID + "\n User : " + retPbVolume.UserUUID + "}"})
 		goto ERROR
 	}
-	err = ReloadAllofVolInfo()
+	err = ReloadAllOfVolInfo()
 	if err != nil {
 		errStack.Push(&hccerr.HccError{ErrText: "Can't Preload "})
 		logger.Logger.Println("Preload", errStack)
@@ -458,12 +460,12 @@ func GetPoolList(contents *pb.ReqGetPoolList) ([]*pb.Pool, *hccerr.HccErrorStack
 		Action:        singlePbPool.GetAction(),
 		Used:          singlePbPool.GetUsed(),
 	}
-	logger.Logger.Println("Resolving: Pool Handle")
+	logger.Logger.Println("Resolving: Pool List")
 	// if retPbPool.Name == "" {
 	// 	errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid Pool name : " + retPbPool.Name + "}"})
 	// 	goto ERROR
 	// }
-	err = ReloadAllofVolInfo()
+	err = ReloadAllOfVolInfo()
 	if err != nil {
 		errStack.Push(&hccerr.HccError{ErrText: "Can't Preload "})
 		logger.Logger.Println("Preload", errStack)
@@ -523,7 +525,7 @@ func PoolHandler(contents *pb.ReqPoolHandler) (*pb.Pool, *hccerr.HccErrorStack) 
 	// 	errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid Pool name : " + retPbPool.Name + "}"})
 	// 	goto ERROR
 	// }
-	err = ReloadAllofVolInfo()
+	err = ReloadAllOfVolInfo()
 	if err != nil {
 		errStack.Push(&hccerr.HccError{ErrText: "Can't Preload "})
 		logger.Logger.Println("Preload", errStack)
@@ -600,7 +602,7 @@ func GetVolumeList(contents *pb.ReqGetVolumeList) ([]*pb.Volume, *hccerr.HccErro
 		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + contents.GetVolume().ServerUUID + "\n User : " + contents.GetVolume().UserUUID + "}"})
 		goto ERROR
 	}
-	err = ReloadAllofVolInfo()
+	err = ReloadAllOfVolInfo()
 	if err != nil {
 		errStack.Push(&hccerr.HccError{ErrText: "Can't Preload "})
 		logger.Logger.Println("Preload", errStack)
