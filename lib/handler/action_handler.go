@@ -1,41 +1,24 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
-	"hcc/cello/lib/logger"
+	"hcc/cello/dao"
+	"hcc/cello/lib/formatter"
+	"hcc/cello/model"
 )
 
-//ActionHandle : action handler
-func ActionHandle(args map[string]interface{}) error {
+// ReloadAllofVolInfo : Reload All of volume info
+func ReloadAllofVolInfo() error {
 
-	if args["use_type"].(string) == "os" {
-		logger.Logger.Println("ActionHandle: Creating OS volume")
-
-		actionstatus, err := PreparePxeSetting(args["server_uuid"].(string), args["use_type"].(string), args["network_ip"].(string))
-		if !actionstatus {
-			strerr := "create_volume action status=>actionstatus " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Prepare Setting (" + strerr + ")")
-		}
-		createstatus, err := CreateVolume(args["filesystem"].(string), args["server_uuid"].(string), args["use_type"].(string), args["size"].(int))
-		if !createstatus {
-			strerr := "create_volume action status=>createstatus " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
-		}
-		logger.Logger.Println("[Action Result]  PreparePxeSetting : ", actionstatus, " , CreateVolume : ", createstatus)
-
+	celloParams := make(map[string]interface{})
+	celloParams["row"] = 254
+	celloParams["page"] = 1
+	dbVol, err := dao.ReadVolumeAll(celloParams)
+	if err != nil {
+		fmt.Println("Error")
 	}
 
-	if args["use_type"].(string) == "data" {
-		logger.Logger.Println("ActionHandle: Creating data volume")
+	formatter.GlobalVolumesDB = dbVol.([]model.Volume)
 
-		createstatus, err := CreateVolume(args["filesystem"].(string), args["server_uuid"].(string), args["use_type"].(string), args["size"].(int))
-		if !createstatus {
-			strerr := "create_volume action status=> " + fmt.Sprintln(err)
-			return errors.New("[Cello]Can't Create Volume ( " + strerr + ")")
-		}
-		logger.Logger.Println("[Action Result] : ", createstatus)
-	}
-
-	return nil
+	return err
 }
