@@ -47,7 +47,7 @@ goreport: goreport_dep ## Make goreport
 	@./hcloud-badge/hcloud_badge.sh ${PROJECT_NAME}
 
 build: ## Build the binary file
-	@$(GOROOT)/bin/go build -o ${PROJECT_NAME} main.go
+	@GOOS=freebsd $(GOROOT)/bin/go build -o ${PROJECT_NAME} main.go
 
 docker: ## Build docker image and push it to private docker registry
 	@sudo docker build -t ${PROJECT_NAME} .
