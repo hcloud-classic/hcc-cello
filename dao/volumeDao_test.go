@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hcc/cello/lib/logger"
+	"hcc/cello/lib/mysql"
 	"hcc/cello/model"
 	"testing"
 
@@ -31,7 +32,16 @@ import (
 
 // }
 
-func TestReadVolumeAll(t *testing.T) {
+func Testmain(t *testing.T) error {
+	err := mysql.Prepare()
+	if err != nil {
+		return err
+	}
+	testReadVolumeAll()
+	return nil
+}
+
+func testReadVolumeAll() {
 	celloParams := make(map[string]interface{})
 	celloParams["row"] = 999999
 	celloParams["page"] = 1
