@@ -12,7 +12,10 @@ Cello 는 크게 2가지 기능을 담당 합니다.
 2. pxeboot를 위한 tftp 설정
 ```
 
-
+## Service
+현재 Cello 는 Freebsd 안에서 동작한다.
+Freebsd에서의 서비스 등록은 `/etc/rc.d` or `/usr/local/etc/rc.d` 두곳중 아무곳에나 서비스 스크립트를 생성해주면 된다.
+서비스 스크립트는 현재 프로젝트의 **script** 에 있다.
 
 ## Manage Volume
 

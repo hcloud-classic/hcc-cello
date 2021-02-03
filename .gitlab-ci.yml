@@ -5,53 +5,53 @@ stages:
     - run
 
 before_script:
-    - export GOROOT="/opt/go"
+    - export GOROOT="/usr/local/go"
     - export GOPATH="/home/gitlab-runner/go"
     - export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
 
 copy_dir:
     stage: init
     script:
-    - gmake copy_dir
+    - make copy_dir
 
-# unit_tests:
-#   stage: test
-#   script:
-#     - gmake test
+unit_tests:
+  stage: test
+  script:
+    - make test
 
-# race_detector:
-#   stage: test
-#   script:
-#     - gmake race
+race_detector:
+  stage: test
+  script:
+    - make race
 
-# code_coverage:
-#   stage: test
-#   script:
-#     - gmake coverage
-# #  only:
-# #  - master
+code_coverage:
+  stage: test
+  script:
+    - make coverage
+#  only:
+#  - master
 
 go_report:
   stage: test
   script:
-    - gmake goreport
+    - make goreport
 #  only:
 #  - master
 
 #lint_code:
 #  stage: test
 #  script:
-#    - gmake lint_dep
-#    - gmake lint
+#    - make lint_dep
+#    - make lint
 
 build:
   stage: build
   script:
-    - gmake
-    - sudo /usr/sbin/service cello stop
-    - sudo cp $PWD/cello /bin/cello
-    - sudo chmod 755 /bin/cello
-    - sudo /usr/sbin/service cello start
+    - make
+    - sudo ssh -t root@storage "/usr/sbin/service cello stop"
+    - sudo scp $PWD/cello root@storage:/bin/cello
+    - sudo ssh -t root@storage "chmod 755 /bin/cello"
+    - sudo ssh -t root@storage "/usr/sbin/service cello start"
     - echo "Finished"
 #  only:
 #  - master
