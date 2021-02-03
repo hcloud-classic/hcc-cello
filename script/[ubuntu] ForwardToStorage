@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# Master Server network interface forwarding configuration script
+# Copyright 2021 by ish
+# Connect to internal ip for storage node
+# Changeable variables
+CONFIG_FILE=/etc/master_iface_forwarding
+FORWARD_CHAIN_NAME=MASTER_FORWARD
+POSTROUTING_CHAIN_NAME=MASTER_POSTROUTING
+PREROUTING_CHAIN_NAME=MASTER_PREROUTING
+
+# Set PATH
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Check if running user is root
+if [ $(whoami) != "root" ]; then
+    echo "Please run as root"
+fi
+
+# Check if configuration file is exist
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "'$CONFIG_FILE' is not exist"
+    exit 1
+fi
+
+# Include configuration file
+. $CONFIG_FILE
+
+# Check if external interface set in the configuration file
+if [ -z "$EXT_IFACE" ] || [ "$EXT_IFACE" == "" ]; then
+    echo "'EXT_IFACE' is not set in the configuration file"
+    exit 1
+fi
+
+# Check if external interface set by EXT_IFACE is exist
+EXT_IFACE_EXIST=`ip addr show $EXT_IFACE > /dev/null 2>&1 && echo true || echo false`
+if [ "$EXT_IFACE_EXIST" == "false" ]; then
+    echo "$EXT_IFACE interface is not exist"
+    exit 1
+fi
+
+# Check if forwarding interfaces set in the configuration file
+if [ -z "$FORWARD_IFACES" ] || [ "$FORWARD_IFACES" == "" ]; then
+    echo "'FORWARD_IFACES' is not set in the configuration file"
+    exit 1
+fi
+
+# Check if interfaces set by FORWARD_IFACES is exist
+for iface in $(echo $FORWARD_IFACES | tr "," "\n")
+do
+    FORWARD_IFACE_EXIST=`ip addr show $iface > /dev/null 2>&1 && echo true || echo false`
+    if [ "$FORWARD_IFACE_EXIST" == "false" ]; then
+        echo "$FORWARD_IFACE_EXIST interface is not exist"
+        exit 1
+    fi
+done
+
+if iptables -n -L $FORWARD_CHAIN_NAME > /dev/null 2>&1 && true || false; then
+    iptables -F $FORWARD_CHAIN_NAME
+    iptables -D FORWARD -j $FORWARD_CHAIN_NAME > /dev/null 2>&1
+    iptables -Z $FORWARD_CHAIN_NAME
+else
+    iptables -N $FORWARD_CHAIN_NAME
+fi
+iptables -I FORWARD 1 -j $FORWARD_CHAIN_NAME
+
+if iptables -t nat -n -L $POSTROUTING_CHAIN_NAME > /dev/null 2>&1 && true || false; then
+    iptables -t nat -F $POSTROUTING_CHAIN_NAME
+    iptables -t nat -D POSTROUTING -j $POSTROUTING_CHAIN_NAME > /dev/null 2>&1
+    iptables -t nat -Z $POSTROUTING_CHAIN_NAME
+else
+    iptables -t nat -N $POSTROUTING_CHAIN_NAME
+fi
+iptables -t nat -I POSTROUTING 1 -j $POSTROUTING_CHAIN_NAME
+
+if iptables -t nat -n -L $PREROUTING_CHAIN_NAME > /dev/null 2>&1 && true || false; then
+    iptables -t nat -F $PREROUTING_CHAIN_NAME
+    iptables -t nat -D PREROUTING -j $PREROUTING_CHAIN_NAME > /dev/null 2>&1
+    iptables -t nat -Z $PREROUTING_CHAIN_NAME
+else
+    iptables -t nat -N $PREROUTING_CHAIN_NAME
+fi
+iptables -t nat -I $PREROUTING_CHAIN_NAME 1 -j $PREROUTING_CHAIN_NAME
+
+iptables -t nat -A $POSTROUTING_CHAIN_NAME -o $EXT_IFACE -j MASQUERADE
+
+for iface in $(echo $FORWARD_IFACES | tr "," "\n")
+do
+    iptables -A $FORWARD_CHAIN_NAME -i $EXT_IFACE -o $iface -m state --state RELATED,ESTABLISHED -j ACCEPT
+    iptables -A $FORWARD_CHAIN_NAME -i $EXT_IFACE -o $iface -j ACCEPT
+done
+
+# Enable ip forwarding from the Kernel
+echo 1 > /proc/sys/net/ipv4/conf/all/route_localnet
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+exit 0

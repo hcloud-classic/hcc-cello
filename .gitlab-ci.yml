@@ -48,10 +48,10 @@ build:
   stage: build
   script:
     - make
-    - sudo ssh -t root@storage "/usr/sbin/service cello stop" > /dev/null 2>&1
-    - sudo scp $PWD/cello root@storage:/bin/cello > /dev/null 2>&1
-    - sudo ssh -t root@storage "chmod 755 /bin/cello" > /dev/null 2>&1
-    - sudo ssh -t root@storage "/usr/sbin/service cello start" > /dev/null 2>&1
+    - sudo ssh -t root@storage "/usr/sbin/service cello stop"
+    - sudo scp $PWD/cello root@storage:/bin/cello
+    - sudo ssh -t root@storage "chmod 755 /bin/cello"
+    - sudo ssh -t root@storage "/usr/sbin/service cello start"
     - echo "Finished"
 #  only:
 #  - master
