@@ -24,8 +24,8 @@ lint: ## Lint the files
 # test: ## Run unittests
 # 	@sudo -E $(GOROOT)/bin/go test -v ${PKG_LIST}
 
-# race: ## Run data race detector
-# 	@sudo -E $(GOROOT)/bin/go test -race -v ${PKG_LIST}
+ race: ## Run data race detector
+ 	@sudo -E $(GOROOT)/bin/go test -race -v ${PKG_LIST}
 
 # coverage: ## Generate global code coverage report
 # 	@sudo -E $(GOROOT)/bin/go test -v -coverprofile=coverage.out ${PKG_LIST}
