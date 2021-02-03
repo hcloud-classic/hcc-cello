@@ -1,0 +1,58 @@
+#!/bin/sh
+# Service Location : /usr/local/etc/rc.d/cello
+#
+. /etc/rc.subr
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:/root/bin
+
+name="cello"
+desc="Start cello"
+rcvar="cello_enable"
+start_cmd="cello_start"
+stop_cmd="cello_stop"
+PIDFILE=/var/run/hcc/cello.pid
+
+cello_start()
+{
+        if [ ! -d /var/run/hcc ];then
+            mkdir -p /var/run/hcc
+        fi
+        if [ -f $PIDFILE ]; then
+          pid=$(cat $PIDFILE)
+          if ps --pid $pid 2>&1 | grep -wq $name; then
+            echo "The HCloud Classic module is already running for" "$name" || true
+            exit 1
+          fi
+        fi
+
+        nohup /bin/cello > /dev/null 2>&1 &
+        Check_pid=$!
+        if [ -n "$Check_pid" ];then
+                echo "Running $name"
+                echo $Check_pid > $PIDFILE
+        else
+                echo "Not running"; exit 1
+        fi
+}
+
+cello_stop()
+{
+        echo "Hcloud Classic Module [$name] Stop"
+        if pgrep cello;then
+                killall cello
+                rm -f $PIDFILE
+        fi
+}
+
+cello_restart()
+{
+
+        echo "Hcloud Classic Module [$name] ReStart"
+        cello_stop
+        cello_start
+
+}
+
+load_rc_config $name
+run_rc_command "$1"
+

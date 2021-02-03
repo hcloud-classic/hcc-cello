@@ -1,0 +1,57 @@
+stages:
+    - init
+    - test
+    - build
+    - run
+
+before_script:
+    - export GOROOT="/usr/local/go"
+    - export GOPATH="/home/gitlab-runner/go"
+    - export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
+
+copy_dir:
+    stage: init
+    script:
+    - make copy_dir
+
+unit_tests:
+  stage: test
+  script:
+    - make test
+
+race_detector:
+  stage: test
+  script:
+    - make race
+
+code_coverage:
+  stage: test
+  script:
+    - make coverage
+#  only:
+#  - master
+
+go_report:
+  stage: test
+  script:
+    - make goreport
+#  only:
+#  - master
+
+#lint_code:
+#  stage: test
+#  script:
+#    - make lint_dep
+#    - make lint
+
+build:
+  stage: build
+  script:
+    - make
+    - sudo ssh -t root@storage "/usr/sbin/service cello stop"
+    - sudo scp $PWD/cello root@storage:/bin/cello
+    - sudo ssh -t root@storage "chmod 755 /bin/cello"
+    - sudo ssh -t root@storage "/usr/sbin/service cello start"
+    - echo "Finished"
+#  only:
+#  - master
