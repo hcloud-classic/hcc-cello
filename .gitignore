@@ -1,0 +1,8 @@
+cello
+coverage.out
+goreport_grade
+.idea/
+.vscode/
+/vendor
+/_venodr-*
+nohup.out

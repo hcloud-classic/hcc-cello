@@ -1,0 +1,259 @@
+//// url
+http://localhost:8001/graphql
+[Get Token]
+query {
+  login(id:"jolla", password:"$2y$10$7FQZM5t8Sh5J9nsfP..4WuizpB08CuO7jYnNiNwB68hpy7ruEQkAG") {
+    token
+    errors {
+      errcode
+      errtext
+    }
+  }
+}
+[New GraphQL]
+query {
+  pool_list(row:10,page:1,user_uuid:"codex",token:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJRCI6ImpvbGxhIiwiUGFzc3dvcmQiOiIkMnkkMTAkN0ZRWk01dDhTaDVKOW5zZlAuLjRXdWl6cEIwOEN1TzdqWW5OaU53QjY4aHB5N3J1RVFrQUciLCJleHAiOjE2MDQ1NjAyNjAsImlhdCI6MTYwNDQ3Mzg2MCwiaXNzIjoicGljY29sbyIsInN1YiI6IkF1dGgifQ.FA1pfRD2BStwnfBVX2Sy4Umb7al2uWgRKFk6IlgnD5s"){
+    pool_list {
+      Action
+      AvailableSize
+      Capacity
+      Health
+      Name
+      Used
+      size
+      uuid
+    }
+    errors {
+      errcode
+      errtext
+    }
+  }
+}
+
+
+// create
+mutation _{
+  volume_handle(action:"create",server_uuid:"c949ecff-18fd-4f63-6911-c9f238c150fc",use_type:"data",size:1){
+pool
+    size
+filesystem
+    pool
+    use_type
+    lun_num
+    pool
+    user_uuid
+    uuid
+  }
+}
+// delete
+mutation _{
+  volume_handle(uuid: "",action:"delete",server_uuid:"c949ecff-18fd-4f63-6911-c9f238c150fc",use_type:"data"){
+pool
+    size
+filesystem
+    pool
+    use_type
+    lun_num
+    pool
+    user_uuid
+    uuid
+  }
+}
+
+
+
+
+[Grpc]
+{
+  "volume": {
+    "size": "100G",
+    "filesystem": "centos",
+    "serverUUID": "079ae634-92c6-42cd-504d-9cb6bd382eb8",
+    "useType": "os",
+    "userUUID": "aaaaa-aaaa-aaaa-aaaa-aaa",
+    "networkIP": "172.18.1.1",
+    "gatewayIp": "172.19.0.1",
+    "pool": "master"
+  }
+}
+
+{
+  "volume": {
+    "size": "1G",
+    "filesystem": "centos",
+    "serverUUID": "qwe",
+    "useType": "os",
+    "userUUID": "999",
+    "networkIP": "172.18.1.1",
+    "gatewayIp": "172.18.1.1",
+    "action": "delete",
+    "UUID": "e2c778c5-4b0c-4549-61e9-5f0e893963eb"
+  }
+}
+
+
+{
+  "volume": {
+    "size": "1G",
+    "filesystem": "centos",
+    "serverUUID": "123",
+    "useType": "os",
+    "userUUID": "999",
+    "networkIP": "172.18.1.1",
+    "gatewayIp": "172.18.1.1",
+    "action": "create"
+  }
+}
+
+
+//// volume
+
+// create
+mutation _ {
+  create_volume(size:1, filesystem:"zfs", server_uuid:"1234", use_type:"os", user_uuid:"1234") {
+    uuid
+    size
+    filesystem
+    server_uuid
+    use_type
+    user_uuid
+    created_at
+  }
+}
+
+// read
+query {
+  volume(uuid: "079ae634-92c6-42cd-504d-9cb6bd382eb8") {
+    uuid
+    size
+    filesystem
+    server_uuid
+    use_type
+    user_uuid
+    created_at
+  }
+}
+
+query {
+  list_volume(user_uuid:"1234", row:5, page:1) {
+    uuid
+    size
+    filesystem
+    server_uuid
+    use_type
+    user_uuid
+    created_at
+  }
+}
+
+query {
+  all_volume(row:5, page:1) {
+    uuid
+    size
+    filesystem
+    server_uuid
+    use_type
+    user_uuid
+    created_at
+  }
+}
+
+query {
+	num_volume{
+    number
+  }
+}
+
+// update
+
+mutation _ {
+  update_volume(uuid: "71eea063-44c1-4fe0-6f0e-2425026e9b6b", use_type:"data") {
+    uuid
+    size
+    filesystem
+    server_uuid
+    use_type
+    user_uuid
+    created_at
+  }
+}
+
+// delete
+mutation _ {
+  delete_volume(uuid:"05333605-561d-4e8c-b566-07c92d915657"){uuid}
+}
+
+//// volume_attachment
+
+// create
+mutation _ {
+  create_volume_attachment(volume_uuid:"1234", server_uuid:"1234") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+// read
+
+query {
+  volume_attachment(uuid: "05dfec6f-7fab-4535-5fd4-555b1a21acaf") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+query {
+  list_volume_attachment(volume_uuid:"1111") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+query {
+  list_volume_attachment(server_uuid:"2222") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+query {
+  all_volume_attachment {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+// update
+
+mutation _ {
+  update_volume_attachment(volume_uuid: "1111", server_uuid: "12345") {
+    uuid
+    volume_uuid
+    server_uuid
+    created_at
+    updated_at
+  }
+}
+
+// delete
+
+mutation _ {
+  delete_volume_attachment(uuid: "a85d4bca-8413-4954-7482-bd54b1c080c5") {
+    uuid
+  }W
+}
