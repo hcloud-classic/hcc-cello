@@ -19,7 +19,7 @@ cello_start()
         fi
         if [ -f $PIDFILE ]; then
           pid=$(cat $PIDFILE)
-          if ps --pid $pid 2>&1 | grep -wq $name; then
+          if ps -p $pid | grep -wq $name; then
             echo "The HCloud Classic module is already running for" "$name" || true
             exit 1
           fi
@@ -31,7 +31,7 @@ cello_start()
                 echo "Running $name"
                 echo $Check_pid > $PIDFILE
         else
-                echo "Not running"; exit 1
+                echo "Not running"
         fi
 }
 

@@ -5,7 +5,7 @@ var grubdefault = "default Hcloud-Classic\n" +
 	"kernel CELLO_PXE_CONF_KERNEL\n"
 
 var leaderoption = "append initrd=CELLO_PXE_CONF_LEADER_INITRAMFS" +
-	" root=CELLO_PXE_CONF_LEADER_ROOT rw "
+	" root=UUID=CELLO_PXE_CONF_LEADER_ROOT rw "
 var computeoption = "append initrd=CELLO_PXE_CONF_COMPUTE_INITRAMFS" +
 	" root=CELLO_PXE_CONF_COMPUTE_ROOT" +
 	" nfsroot=CELLO_PXE_CONF_Leader_IP:/,rw "

@@ -99,7 +99,10 @@ func parseVolumeHandle() {
 	if err != nil {
 		logger.Logger.Panicln(err)
 	}
-
+	VolumeConfig.ROOTUUID, err = config.VolumeConfig.String("root_uuid")
+	if err != nil {
+		logger.Logger.Panicln(err)
+	}
 }
 
 // Parser : Parse config file

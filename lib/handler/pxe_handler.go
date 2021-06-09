@@ -27,6 +27,7 @@ func DeletePxeSetting(volume *model.Volume) (bool, interface{}) {
 }
 
 //PreparePxeSetting : Prepare Pxe Setting, that pxelinux.cfg/default context update
+// create pxe
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string, gateway string) (bool, interface{}) {
 
 	if _, err := os.Stat(defaultdir + "/" + ServerUUID); os.IsNotExist(err) {
@@ -36,8 +37,19 @@ func PreparePxeSetting(ServerUUID string, OS string, networkIP string, gateway s
 		}
 	}
 
+	// if err != nil {
+	// 	return false, "Can't Create Directory at " + defaultdir + "/" + ServerUUID
+	// }
+	// if _, err := os.Stat("/root/boottp/HCC/" + ServerUUID); os.IsNotExist(err) {
+	// 	err = os.MkdirAll("/root/boottp/HCC/"+ServerUUID, 0755)
+	// 	if err != nil {
+	// 		return false, err
+	// 	}
+	// }
+
 	copyresult, test := copydefaultsetting(defaultdir+"/defaultLeader", defaultdir+"/"+ServerUUID+"/"+"Leader")
 	if !copyresult {
+		// logger.Logger.Println(test)
 		str := fmt.Sprintf("%v", test)
 		return false, errors.New("Leader Pxe Setting Failed : " + str)
 	}
@@ -63,12 +75,13 @@ func rebuildPxeSetting(ServerUUID string, pxeDir string, networkIP string, gatew
 	leaderpxecfg := grubdefault + leaderoption + iscsioption + commonoption
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_KERNEL", "vmlinuz-hcc", -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-hcc", -1)
-	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sdc1", -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", config.VolumeConfig.ROOTUUID, -1)
 	splitip := strings.Split(networkIP, ".")
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_COMPUTE_SESSION_ID", splitip[2], -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_SERVER_IP", config.VolumeConfig.IscsiDiscoveryAddress[0], -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_TARGET_DOMAIN", ServerUUID, -1)
 
+	// logger.Logger.Println("leaderpxecfg => ", leaderpxecfg)
 	err := writeConfigFile(pxeDir, "Leader", leaderpxecfg)
 	if err != nil {
 		return false
@@ -82,6 +95,8 @@ func rebuildPxeSetting(ServerUUID string, pxeDir string, networkIP string, gatew
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_Leader_IP", networkIP, -1)
 	computepxecfg = strings.Replace(computepxecfg, "CELLO_PXE_CONF_COMPUTE_SESSION_ID", splitip[2], -1)
 
+	// logger.Logger.Println("computepxecfg => ", computepxecfg)
+
 	err = writeConfigFile(pxeDir, "Compute", computepxecfg)
 	if err != nil {
 		return false
@@ -90,7 +105,9 @@ func rebuildPxeSetting(ServerUUID string, pxeDir string, networkIP string, gatew
 }
 
 func writeConfigFile(pxeDir string, name string, contents string) error {
+	// confilepath := defaultdir + "/" + ServerUUID
 	confpath := pxeDir + name
+	// logger.Logger.Println("confpath => ", confpath)
 	err := logger.CreateDirIfNotExist(confpath)
 	if err != nil {
 		return err
