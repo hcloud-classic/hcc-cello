@@ -84,7 +84,7 @@ func rebuildPxeSetting(ServerUUID string, pxeDir string, networkIP string, gatew
 	leaderpxecfg := grubdefault + leaderoption + iscsioption + commonoption
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_KERNEL", "vmlinuz-hcc", -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_INITRAMFS", "initrd.img-hcc", -1)
-	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", "/dev/sdc1", -1)
+	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_LEADER_ROOT", config.VolumeConfig.ROOTUUID, -1)
 	splitip := strings.Split(networkIP, ".")
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_COMPUTE_SESSION_ID", splitip[2], -1)
 	leaderpxecfg = strings.Replace(leaderpxecfg, "CELLO_PXE_CONF_ISCSI_SERVER_IP", config.VolumeConfig.IscsiDiscoveryAddress[0], -1)
