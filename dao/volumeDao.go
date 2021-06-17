@@ -1,24 +1,30 @@
 package dao
 
 import (
+	"database/sql"
 	"errors"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
 	"hcc/cello/model"
 	"strconv"
 	"time"
+
+	"innogrid.com/hcloud-classic/hcc_errors"
 )
 
-func ReadVolume(args map[string]interface{}) (interface{}, error) {
+// ReadVolume : Single Volume info
+func ReadVolume(in *model.Volume) (model.Volume, uint64, string) {
 	var volume model.Volume
 	var err error
-	uuid := args["uuid"].(string)
+	uuid := in.UUID
 
 	var size int
 	var filesystem string
 	var serverUUID string
 	var useType string
 	var userUUID string
+	var lunNum int
+	var pool string
 	var createdAt time.Time
 
 	sql := "select * from volume where uuid = ?"
@@ -29,10 +35,12 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 		&serverUUID,
 		&useType,
 		&userUUID,
+		&lunNum,
+		&pool,
 		&createdAt)
 	if err != nil {
 		logger.Logger.Println(err)
-		return nil, err
+		return volume, hcc_errors.CelloSQLOperationFail, err.Error()
 	}
 
 	volume.UUID = uuid
@@ -41,78 +49,110 @@ func ReadVolume(args map[string]interface{}) (interface{}, error) {
 	volume.ServerUUID = serverUUID
 	volume.UseType = useType
 	volume.UserUUID = userUUID
+	volume.LunNum = lunNum
+	volume.Pool = pool
 	volume.CreatedAt = createdAt
 
-	return volume, nil
+	return volume, 0, ""
 }
 
-func checkReadVolumeListPageRow(args map[string]interface{}) bool {
+func checkVolumePageRow(args map[string]interface{}) bool {
 	_, rowOk := args["row"].(int)
 	_, pageOk := args["page"].(int)
 
 	return !rowOk || !pageOk
 }
 
-func ReadVolumeList(args map[string]interface{}) (interface{}, error) {
+// ReadVolumeList - cgs
+func ReadVolumeList(in *model.Volume, row int, page int) ([]model.Volume, uint64, string) {
 	var err error
 	var volumes []model.Volume
 	var requestUUID string
 	var createdAt time.Time
 
-	size, sizeOk := args["size"].(int)
-	filesystem, filesystemOk := args["filesystem"].(string)
-	serverUUID, serverUUIDOk := args["server_uuid"].(string)
-	useType, useTypeOk := args["use_type"].(string)
-	userUUID, userUUIDOk := args["user_uuid"].(string)
+	var size int
+	var filesystem string
+	var serverUUID string
+	var useType string
+	var userUUID string
+	var lunNum int
+	var pool string
 
-	if !userUUIDOk {
-		return nil, err
+	if in.ServerUUID != "" {
+		serverUUID = in.ServerUUID
 	}
-	row, _ := args["row"].(int)
-	page, _ := args["page"].(int)
-	if checkReadVolumeListPageRow(args) {
-		return nil, err
+	if in.UserUUID != "" {
+		userUUID = in.UserUUID
 	}
-
+	// sql := "select * from volume "
 	sql := "select * from volume where 1=1"
-	if sizeOk {
-		sql += " and size = " + strconv.Itoa(size)
-	}
-	if filesystemOk {
-		sql += " and filesystem = '" + filesystem + "'"
-	}
-	if serverUUIDOk {
-		sql += " and server_uuid = '" + serverUUID + "'"
-	}
-	if useTypeOk {
-		sql += " and use_type = '" + useType + "'"
-	}
+	// if in.Size != "" {
+	// sql += " and size = '1'"
+	// }
+	// if filesystemOk {
+	// 	sql += " and filesystem = '" + filesystem + "'"
+	// }
+	// if serverUUIDOk {
+	sql += " and server_uuid = '" + serverUUID + "'"
+	// }
+	// if useTypeOk {
+	// 	sql += " and use_type = '" + useType + "'"
+	// }
+	// if userUUIDOk {
+	// sql += " and user_uuid = '" + userUUID + "'"
+	// }
 
-	sql += " and user_uuid = ? order by created_at desc limit ? offset ?"
+	sql += " order by created_at asc limit ? offset ?"
+	// sql += " order by created_at "
 
-	stmt, err := mysql.Db.Query(sql, userUUID, row, row*(page-1))
+	stmt, err := mysql.Db.Query(sql, row, 0)
+	// stmt, err := mysql.Db.Query(sql)
+
+	// logger.Logger.Println(err.Error())
 	if err != nil {
-		logger.Logger.Println(err.Error())
-		return nil, err
+		logger.Logger.Println(err)
+		return volumes, hcc_errors.CelloSQLOperationFail, err.Error()
 	}
 	defer func() {
 		_ = stmt.Close()
 	}()
 
 	for stmt.Next() {
-		err := stmt.Scan(&requestUUID, &size, &filesystem, &serverUUID, &useType, &userUUID, &createdAt)
+
+		err := stmt.Scan(
+			&requestUUID,
+			&size,
+			&filesystem,
+			&serverUUID,
+			&useType,
+			&userUUID,
+			&lunNum,
+			&pool,
+			&createdAt)
+
 		if err != nil {
-			logger.Logger.Println(err.Error())
-			return nil, err
+			logger.Logger.Println(sql, err.Error())
+			return volumes, hcc_errors.CelloSQLOperationFail, err.Error()
 		}
-		volume := model.Volume{UUID: requestUUID, Size: size, Filesystem: filesystem, ServerUUID: serverUUID, UseType: useType, UserUUID: userUUID, CreatedAt: createdAt}
+		volume := model.Volume{
+			UUID:       requestUUID,
+			Size:       size,
+			Filesystem: filesystem,
+			ServerUUID: serverUUID,
+			UseType:    useType,
+			UserUUID:   userUUID,
+			CreatedAt:  createdAt,
+			Pool:       pool,
+			LunNum:     lunNum,
+		}
 		logger.Logger.Println(volume)
 		volumes = append(volumes, volume)
 	}
-	return volumes, nil
+	return volumes, 0, ""
 }
 
-func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
+// ReadVolumeAll - cgs
+func ReadVolumeAll(args map[string]interface{}) (interface{}, uint64, string) {
 	var err error
 	var volumes []model.Volume
 	var requestUUID string
@@ -121,39 +161,55 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	var serverUUID string
 	var useType string
 	var userUUID string
+	var lunNum int
+	var pool string
 	var createdAt time.Time
-	row, rowOk := args["row"].(int)
-	page, pageOk := args["page"].(int)
-	if !rowOk || !pageOk {
-		return nil, err
+	var stmt *sql.Rows
+	row, _ := args["row"].(int)
+	page, _ := args["page"].(int)
+	if checkVolumePageRow(args) {
+		return nil, hcc_errors.CelloGrpcArgumentError, errors.New("need row and page arguments").Error()
 	}
 
-	sql := "select * from volume order by created_at desc limit ? offset ?"
+	if row == 0 && page == 0 {
+		sql := "select * from cello.volume order by created_at desc"
+		stmt, err = mysql.Db.Query(sql)
+	} else {
+		sql := "select * from cello.volume order by created_at desc limit ? offset ?"
+		stmt, err = mysql.Db.Query(sql, row, row*(page-1))
+	}
+	// stmt, err := mysql.Db.Query(sql, row, 0)
 
-	stmt, err := mysql.Db.Query(sql, row, row*(page-1))
 	if err != nil {
+
 		logger.Logger.Println(err.Error())
-		return nil, err
+		goto ERROR
 	}
+
 	defer func() {
 		_ = stmt.Close()
 	}()
 
 	for stmt.Next() {
-		err := stmt.Scan(&requestUUID, &size, &filesystem, &serverUUID, &useType, &userUUID, &createdAt)
+		//err := stmt.Scan(&uuid, &subnetUUID, &os, &serverName, &serverDesc, &cpu, &memory, &diskSize, &status, &userUUID, &createdAt)
+		err := stmt.Scan(&requestUUID, &size, &filesystem, &serverUUID, &useType, &userUUID, &lunNum, &pool, &createdAt)
 
 		if err != nil {
 			logger.Logger.Println(err)
-			return nil, err
+			goto ERROR
+
 		}
-		volume := model.Volume{UUID: requestUUID, Size: size, Filesystem: filesystem, ServerUUID: serverUUID, UseType: useType, UserUUID: userUUID, CreatedAt: createdAt}
+		volume := model.Volume{UUID: requestUUID, Size: size, Filesystem: filesystem, ServerUUID: serverUUID, UseType: useType, UserUUID: userUUID, LunNum: lunNum, Pool: pool, CreatedAt: createdAt}
 		volumes = append(volumes, volume)
 	}
+	return volumes, 0, ""
 
-	return volumes, nil
+ERROR:
+	return nil, hcc_errors.CelloSQLOperationFail, err.Error()
 }
 
-func ReadVolumeNum() (model.VolumeNum, error) {
+// ReadVolumeNum : The number of Volumes
+func ReadVolumeNum() (model.VolumeNum, uint64, string) {
 	var volumeNum model.VolumeNum
 	var volumeNr int
 	var err error
@@ -162,47 +218,30 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 	err = mysql.Db.QueryRow(sql).Scan(&volumeNr)
 	if err != nil {
 		logger.Logger.Println(err)
-		return volumeNum, err
+		return volumeNum, hcc_errors.CelloSQLOperationFail, err.Error()
 	}
 	volumeNum.Number = volumeNr
 
-	return volumeNum, nil
+	return volumeNum, 0, ""
 }
 
-func CreateVolume(args map[string]interface{}) (interface{}, error) {
-	out, err := gouuid.NewV4()
-	if err != nil {
-		logger.Logger.Println("[volumeDao]Can't Create Volume UUID : ", err)
-		return nil, err
-	}
-	uuid := out.String()
-
-	volume := model.Volume{
-		UUID:       uuid,
-		Size:       args["size"].(int),
-		Filesystem: args["filesystem"].(string),
-		ServerUUID: args["server_uuid"].(string),
-		UseType:    args["use_type"].(string),
-		UserUUID:   args["user_uuid"].(string),
-		NetworkIP:  args["network_ip"].(string),
-	}
-
-	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid, created_at) values (?, ?, ?, ?, ?, ?, now())"
+// CreateVolume - cgs
+func CreateVolume(in *model.Volume) (uint64, string) {
+	sql := "insert into volume(uuid, size, filesystem, server_uuid, use_type, user_uuid,lun_num , pool,created_at) values (?, ?, ?, ?, ?, ?, ?, ?, now())"
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
 		logger.Logger.Println(err.Error())
-		return nil, err
+		return hcc_errors.CelloSQLOperationFail, err.Error()
 	}
 	defer func() {
 		_ = stmt.Close()
 	}()
-	result, err := stmt.Exec(volume.UUID, volume.Size, volume.Filesystem, volume.ServerUUID, volume.UseType, volume.UserUUID)
+	_, err = stmt.Exec(in.UUID, in.Size, in.Filesystem, in.ServerUUID, in.UseType, in.UserUUID, in.LunNum, in.Pool)
 	if err != nil {
-		logger.Logger.Println("[volumeDao]Can't Update DB : ", result, err)
-		return nil, err
+		errStr := "[volumeDao]Can't Update DB: " + err.Error()
+		return hcc_errors.CelloSQLOperationFail, errStr
 	}
-
-	return volume, nil
+	return 0, ""
 }
 
 func checkUpdateVolumeArgs(args map[string]interface{}) bool {
@@ -214,7 +253,8 @@ func checkUpdateVolumeArgs(args map[string]interface{}) bool {
 	return !sizeOk && !filesystemOk && !serverUUIDOk && !useTypeOk
 }
 
-func UpdateVolume(args map[string]interface{}) (interface{}, error) {
+// UpdateVolume - cgs
+func UpdateVolume(args map[string]interface{}) (interface{}, uint64, string) {
 	var err error
 
 	requestedUUID, requestedUUIDOk := args["uuid"].(string)
@@ -234,7 +274,7 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 
 	if requestedUUIDOk {
 		if checkUpdateVolumeArgs(args) {
-			return nil, errors.New("need some arguments")
+			return nil, hcc_errors.CelloGrpcArgumentError, errors.New("need some arguments").Error()
 		}
 
 		sql := "update volume set"
@@ -259,7 +299,7 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
 			logger.Logger.Println(err.Error())
-			return nil, err
+			goto ERROR
 		}
 		defer func() {
 			_ = stmt.Close()
@@ -268,38 +308,40 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 		result, err2 := stmt.Exec(volume.UUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)
-			return nil, err
+			goto ERROR
 		}
 		logger.Logger.Println(result.LastInsertId())
-		return volume, nil
+		return volume, 0, ""
+
 	}
 
-	return nil, err
+ERROR:
+	return nil, hcc_errors.CelloSQLOperationFail, err.Error()
 }
 
-func DeleteVolume(args map[string]interface{}) (interface{}, error) {
+// DeleteVolume - cgs
+func DeleteVolume(in *model.Volume) (uint64, string) {
 	var err error
 
-	requestedUUID, ok := args["uuid"].(string)
-	if ok {
+	if in.UUID != "" {
 		sql := "delete from volume where uuid = ?"
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
 			logger.Logger.Println(err.Error())
-			return nil, err
+			goto ERROR
 		}
 		defer func() {
 			_ = stmt.Close()
 		}()
-		result, err2 := stmt.Exec(requestedUUID)
+		result, err2 := stmt.Exec(in.UUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)
-			return nil, err
+			goto ERROR
 		}
 		logger.Logger.Println(result.RowsAffected())
 
-		return requestedUUID, nil
+		return 0, ""
 	}
-
-	return requestedUUID, err
+ERROR:
+	return hcc_errors.CelloSQLOperationFail, err.Error()
 }

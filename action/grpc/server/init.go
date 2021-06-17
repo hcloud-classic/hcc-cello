@@ -1,7 +1,6 @@
 package server
 
 import (
-	pb "hcc/cello/action/grpc/pb/rpccello"
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/logger"
 	"net"
@@ -9,6 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"innogrid.com/hcloud-classic/pb"
 )
 
 // Init : Initialize gRPC server

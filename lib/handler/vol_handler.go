@@ -2,12 +2,15 @@ package handler
 
 import (
 	"errors"
+	"fmt"
+	"hcc/cello/dao"
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/formatter"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
 	"math"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -27,6 +30,7 @@ func ReloadPoolObject() error {
 	cmd := exec.Command("/bin/bash", "-c", act)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
+		fmt.Println("Can't exec zpool name ", err)
 		return err
 	}
 
@@ -37,6 +41,7 @@ func ReloadPoolObject() error {
 			cmd = exec.Command("/bin/bash", "-c", act)
 			result, err = cmd.CombinedOutput()
 			if err != nil {
+				fmt.Println("Can't exec zpool free : ", args, err)
 				return err
 
 			}
@@ -51,6 +56,7 @@ func ReloadPoolObject() error {
 			cmd = exec.Command("/bin/bash", "-c", act)
 			result, err = cmd.CombinedOutput()
 			if err != nil {
+				fmt.Println("Can't exec zpool capacity : ", args, err)
 				return err
 
 			}
@@ -60,6 +66,7 @@ func ReloadPoolObject() error {
 			cmd = exec.Command("/bin/bash", "-c", act)
 			result, err = cmd.CombinedOutput()
 			if err != nil {
+				fmt.Println("Can't exec zpool size ", args, err)
 				return err
 
 			}
@@ -80,22 +87,49 @@ func ReloadPoolObject() error {
 			poolobj.AvailableSize = strconv.Itoa(int(math.Floor(convIntPoolSize - float64(intSize))))
 
 			poolobj.Used = strconv.Itoa(intSize)
+			fmt.Println("convIntPoolSize : ", convIntPoolSize, " intSize: ", poolobj.Used)
 
 			act = "zpool list -H -o health " + args
 			cmd = exec.Command("/bin/bash", "-c", act)
 			result, err = cmd.CombinedOutput()
 			if err != nil {
+				fmt.Println("Can't exec zpool health ", args, err)
 				return err
 
 			}
 			poolobj.Health = string(result)
 
 			poolobj.Name = args
+			// act = "zfs get -H -o value available master/volpool-1"
+			fmt.Println("pool => ", poolobj)
 			formatter.PoolObjectMap.PutPool(poolobj)
 		}
 	}
 	return nil
 
+}
+func ReloadAllOfVolInfo() error {
+	var recvErr error
+	// var recvStr string
+	var ErrStr string
+	var ErrCode uint64
+	celloParams := make(map[string]interface{})
+	celloParams["row"] = 254
+	celloParams["page"] = 1
+	dbVol, ErrCode, ErrStr := dao.ReadVolumeAll(celloParams)
+	if recvErr != nil {
+		logger.Logger.Println("ReloadAllOfVolInfo(): Failed to read volumes", ErrCode, ErrStr)
+		return recvErr
+	}
+	formatter.GlobalVolumesDB = dbVol.([]model.Volume)
+	fmt.Println("ReloadAllOfVolInfo", formatter.GlobalVolumesDB)
+	sort.Slice(formatter.GlobalVolumesDB, func(i, j int) bool {
+		return formatter.GlobalVolumesDB[i].LunNum < formatter.GlobalVolumesDB[j].LunNum
+	})
+	PreLoad()
+	fmt.Println("ReloadAllOfVolInfo : \n", formatter.VolObjectMap.GetIscsiMap())
+
+	return nil
 }
 
 func findVolObejct(volume model.Volume) bool {
@@ -180,6 +214,7 @@ func DeleteVolumeObj(volume model.Volume) (bool, interface{}) {
 			logger.Logger.Println("Delete OS Volume Failed")
 			return false, nil
 		}
+		// fmt.Println("[Debug] : ", ejectDomain)
 		return true, ejectDomain
 	} else {
 		lunStructure, _ := formatter.VolObjectMap.GetIscsiLun(volume)
@@ -202,6 +237,7 @@ func DeleteVolumeZFS(volName string) (bool, interface{}) {
 }
 
 func destroyzvol(volumeName string) bool {
+	fmt.Println("destroyzvol : ", volumeName)
 	cmd := exec.Command("zfs", "destroy", volumeName)
 	result, err := cmd.CombinedOutput()
 	if err != nil {
@@ -252,17 +288,17 @@ func clonezvol(volume model.Volume) (bool, interface{}) {
 	return true, result
 }
 
-func createzfs(volume model.Volume) (bool, interface{}) {
-	volname := formatter.VolNameBuilder(volume)
-	mountpath := "mountpoint=" + defaultdir + "/" + volname
-	cmd := exec.Command("zfs", "", "-o", mountpath, volname)
+// func createzfs(volume model.Volume) (bool, interface{}) {
+// 	volname := formatter.VolNameBuilder(volume)
+// 	mountpath := "mountpoint=" + defaultdir + "/" + volname
+// 	cmd := exec.Command("zfs", "", "-o", mountpath, volname)
 
-	result, err := cmd.CombinedOutput()
-	if err != nil {
-		return false, err
-	}
-	return true, result
-}
+// 	result, err := cmd.CombinedOutput()
+// 	if err != nil {
+// 		return false, err
+// 	}
+// 	return true, result
+// }
 
 //Deprecate
 // zfs set quota=20G refquota=20G master/UUID-TEST
@@ -290,10 +326,12 @@ func AvailablePoolCheck() string {
 			min = args.Free
 			poolname = args.Name
 		}
+		fmt.Println(args.Name)
 	}
 	if poolname == "" {
 		logger.Logger.Println("There Is No Available Pool")
 	}
+	fmt.Println("############## ", poolname)
 	return poolname
 }
 

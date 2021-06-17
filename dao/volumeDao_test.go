@@ -46,10 +46,10 @@ func testReadVolumeAll() {
 	celloParams["row"] = 999999
 	celloParams["page"] = 1
 	var volumes []model.Volume
-	qwe, err := ReadVolumeAll(celloParams)
+	qwe, errCode, recvStr := ReadVolumeAll(celloParams)
 
-	if err != nil {
-		fmt.Println("test err")
+	if recvStr != "" {
+		fmt.Println("test : ", errCode, recvStr)
 	}
 	volumes = qwe.([]model.Volume)
 	body, _ := json.Marshal(volumes)

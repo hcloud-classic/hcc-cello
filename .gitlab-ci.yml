@@ -62,17 +62,6 @@ build:
 service_run:
   stage: run
   script:
-    - sudo /usr/sbin/service $Serivce_Name stop
-    - sudo cp $Build_Path/$Serivce_Name/$Branch_Name/$Serivce_Name /usr/local/bin/$Serivce_Name
-    - sudo chmod 755 /usr/local/bin/$Serivce_Name
-    - sudo /usr/sbin/service $Serivce_Name start
-    - sudo rm -rf $Build_Path/$Serivce_Name/$Branch_Name
-    - echo "Finished"
-
-service_run:
-  stage: run
-  script:
-    - make
     - echo "Please regist storage Host"
     - sudo ssh -t root@storage "/usr/sbin/service $Serivce_Name stop"
     - sudo scp $Build_Path/$Serivce_Name/$Branch_Name/$Serivce_Name root@storage:/bin/$Serivce_Name

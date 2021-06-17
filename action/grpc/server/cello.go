@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
-	errconv "hcc/cello/action/grpc/errconv"
-	pb "hcc/cello/action/grpc/pb/rpccello"
+	"hcc/cello/action/grpc/errconv"
 	"hcc/cello/driver/grpcsrv"
 	"hcc/cello/lib/logger"
+
+	errh "innogrid.com/hcloud-classic/hcc_errors"
+	"innogrid.com/hcloud-classic/pb"
 )
 
 type celloServer struct {
@@ -44,8 +46,10 @@ func returnPool(pool *pb.Pool) *pb.Pool {
 func (s *celloServer) VolumeHandler(_ context.Context, in *pb.ReqVolumeHandler) (*pb.ResVolumeHandler, error) {
 	logger.Logger.Println("Request received: Volume Handler()")
 	// fmt.Println("Grpc : \n", &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(nil)})
-	volume, errStack := grpcsrv.VolumeHandler(in)
+	volume, errCode, errStr := grpcsrv.VolumeHandler(in)
 	if volume == nil {
+		errStack := errh.NewHccErrorStack(errh.NewHccError(errCode, errStr))
+
 		return &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(errStack)}, nil
 	}
 
@@ -55,8 +59,10 @@ func (s *celloServer) VolumeHandler(_ context.Context, in *pb.ReqVolumeHandler) 
 func (s *celloServer) PoolHandler(_ context.Context, in *pb.ReqPoolHandler) (*pb.ResPoolHandler, error) {
 	logger.Logger.Println("Request received: Pool Handler()")
 	// fmt.Println("Grpc : \n", &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(nil)})
-	pool, errStack := grpcsrv.PoolHandler(in)
+	pool, errCode, errStr := grpcsrv.PoolHandler(in)
 	if pool == nil {
+		errStack := errh.NewHccErrorStack(errh.NewHccError(errCode, errStr))
+
 		return &pb.ResPoolHandler{Pool: &pb.Pool{}, HccErrorStack: errconv.HccStackToGrpc(errStack)}, nil
 	}
 
@@ -66,8 +72,10 @@ func (s *celloServer) PoolHandler(_ context.Context, in *pb.ReqPoolHandler) (*pb
 func (s *celloServer) GetVolumeList(_ context.Context, in *pb.ReqGetVolumeList) (*pb.ResGetVolumeList, error) {
 	logger.Logger.Println("Request received: GetVolumeList()")
 	// fmt.Println("Grpc : \n", &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(nil)})
-	volumeList, errStack := grpcsrv.GetVolumeList(in)
+	volumeList, errCode, errStr := grpcsrv.GetVolumeList(in)
 	if volumeList == nil {
+		errStack := errh.NewHccErrorStack(errh.NewHccError(errCode, errStr))
+
 		return &pb.ResGetVolumeList{Volume: nil, HccErrorStack: errconv.HccStackToGrpc(errStack)}, nil
 	}
 
@@ -77,8 +85,10 @@ func (s *celloServer) GetVolumeList(_ context.Context, in *pb.ReqGetVolumeList) 
 func (s *celloServer) GetPoolList(_ context.Context, in *pb.ReqGetPoolList) (*pb.ResGetPoolList, error) {
 	logger.Logger.Println("Request received: GetPoolList()")
 	// fmt.Println("Grpc : \n", &pb.ResVolumeHandler{Volume: &pb.Volume{}, HccErrorStack: errconv.HccStackToGrpc(nil)})
-	pool, errStack := grpcsrv.GetPoolList(in)
+	pool, errCode, errStr := grpcsrv.GetPoolList(in)
 	if pool == nil {
+		errStack := errh.NewHccErrorStack(errh.NewHccError(errCode, errStr))
+
 		return &pb.ResGetPoolList{Pool: nil, HccErrorStack: errconv.HccStackToGrpc(errStack)}, nil
 	}
 
