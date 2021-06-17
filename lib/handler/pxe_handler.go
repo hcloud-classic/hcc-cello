@@ -29,7 +29,12 @@ func DeletePxeSetting(volume *model.Volume) (bool, interface{}) {
 //PreparePxeSetting : Prepare Pxe Setting, that pxelinux.cfg/default context update
 // create pxe
 func PreparePxeSetting(ServerUUID string, OS string, networkIP string, gateway string) (bool, interface{}) {
-
+	// var b bytes.Buffer
+	// b.WriteString(config.VolumeConfig.VOLUMEPOOL)
+	// defaultdir += "/" + b.String() + tftpdir
+	defaultdir = "/" + config.VolumeConfig.VOLUMEPOOL + tftpdir
+	// b.Reset()
+	logger.Logger.Println("#####################  ", defaultdir, " ||  ", config.VolumeConfig.VOLUMEPOOL, "||")
 	if _, err := os.Stat(defaultdir + "/" + ServerUUID); os.IsNotExist(err) {
 		err = os.MkdirAll(defaultdir+"/"+ServerUUID, 0755)
 		if err != nil {

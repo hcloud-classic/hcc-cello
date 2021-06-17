@@ -10,8 +10,8 @@ func getVolumeDB() error {
 	if err != nil {
 		return err
 	}
-
-	err = handler.ReloadAllofVolInfo()
+	// ReloadAllofVolInfo
+	err = handler.ReloadAllOfVolInfo()
 	if err != nil {
 		return err
 	}

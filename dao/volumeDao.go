@@ -3,16 +3,17 @@ package dao
 import (
 	"database/sql"
 	"errors"
-	hccerr "hcc/cello/lib/errors"
 	"hcc/cello/lib/logger"
 	"hcc/cello/lib/mysql"
 	"hcc/cello/model"
 	"strconv"
 	"time"
+
+	"innogrid.com/hcloud-classic/hcc_errors"
 )
 
 // ReadVolume : Single Volume info
-func ReadVolume(in *model.Volume) (uint64, model.Volume) {
+func ReadVolume(in *model.Volume) (model.Volume, uint64, string) {
 	var volume model.Volume
 	var err error
 	uuid := in.UUID
@@ -39,7 +40,7 @@ func ReadVolume(in *model.Volume) (uint64, model.Volume) {
 		&createdAt)
 	if err != nil {
 		logger.Logger.Println(err)
-		return hccerr.CelloSQLOperationFail, volume
+		return volume, hcc_errors.CelloSQLOperationFail, err.Error()
 	}
 
 	volume.UUID = uuid
@@ -52,7 +53,7 @@ func ReadVolume(in *model.Volume) (uint64, model.Volume) {
 	volume.Pool = pool
 	volume.CreatedAt = createdAt
 
-	return 0, volume
+	return volume, 0, ""
 }
 
 func checkVolumePageRow(args map[string]interface{}) bool {
@@ -63,7 +64,7 @@ func checkVolumePageRow(args map[string]interface{}) bool {
 }
 
 // ReadVolumeList - cgs
-func ReadVolumeList(in *model.Volume, row int, page int) (uint64, []model.Volume) {
+func ReadVolumeList(in *model.Volume, row int, page int) ([]model.Volume, uint64, string) {
 	var err error
 	var volumes []model.Volume
 	var requestUUID string
@@ -109,7 +110,8 @@ func ReadVolumeList(in *model.Volume, row int, page int) (uint64, []model.Volume
 
 	// logger.Logger.Println(err.Error())
 	if err != nil {
-		return hccerr.CelloSQLOperationFail, volumes
+		logger.Logger.Println(err)
+		return volumes, hcc_errors.CelloSQLOperationFail, err.Error()
 	}
 	defer func() {
 		_ = stmt.Close()
@@ -130,7 +132,7 @@ func ReadVolumeList(in *model.Volume, row int, page int) (uint64, []model.Volume
 
 		if err != nil {
 			logger.Logger.Println(sql, err.Error())
-			return hccerr.CelloSQLOperationFail, volumes
+			return volumes, hcc_errors.CelloSQLOperationFail, err.Error()
 		}
 		volume := model.Volume{
 			UUID:       requestUUID,
@@ -146,11 +148,11 @@ func ReadVolumeList(in *model.Volume, row int, page int) (uint64, []model.Volume
 		logger.Logger.Println(volume)
 		volumes = append(volumes, volume)
 	}
-	return 0, volumes
+	return volumes, 0, ""
 }
 
 // ReadVolumeAll - cgs
-func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
+func ReadVolumeAll(args map[string]interface{}) (interface{}, uint64, string) {
 	var err error
 	var volumes []model.Volume
 	var requestUUID string
@@ -166,7 +168,7 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	row, _ := args["row"].(int)
 	page, _ := args["page"].(int)
 	if checkVolumePageRow(args) {
-		return nil, errors.New("need row and page arguments")
+		return nil, hcc_errors.CelloGrpcArgumentError, errors.New("need row and page arguments").Error()
 	}
 
 	if row == 0 && page == 0 {
@@ -181,7 +183,7 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 	if err != nil {
 
 		logger.Logger.Println(err.Error())
-		return nil, err
+		goto ERROR
 	}
 
 	defer func() {
@@ -194,17 +196,20 @@ func ReadVolumeAll(args map[string]interface{}) (interface{}, error) {
 
 		if err != nil {
 			logger.Logger.Println(err)
-			return nil, err
+			goto ERROR
+
 		}
 		volume := model.Volume{UUID: requestUUID, Size: size, Filesystem: filesystem, ServerUUID: serverUUID, UseType: useType, UserUUID: userUUID, LunNum: lunNum, Pool: pool, CreatedAt: createdAt}
 		volumes = append(volumes, volume)
 	}
+	return volumes, 0, ""
 
-	return volumes, nil
+ERROR:
+	return nil, hcc_errors.CelloSQLOperationFail, err.Error()
 }
 
 // ReadVolumeNum : The number of Volumes
-func ReadVolumeNum() (model.VolumeNum, error) {
+func ReadVolumeNum() (model.VolumeNum, uint64, string) {
 	var volumeNum model.VolumeNum
 	var volumeNr int
 	var err error
@@ -213,11 +218,11 @@ func ReadVolumeNum() (model.VolumeNum, error) {
 	err = mysql.Db.QueryRow(sql).Scan(&volumeNr)
 	if err != nil {
 		logger.Logger.Println(err)
-		return volumeNum, err
+		return volumeNum, hcc_errors.CelloSQLOperationFail, err.Error()
 	}
 	volumeNum.Number = volumeNr
 
-	return volumeNum, nil
+	return volumeNum, 0, ""
 }
 
 // CreateVolume - cgs
@@ -226,6 +231,7 @@ func CreateVolume(in *model.Volume) (uint64, string) {
 	stmt, err := mysql.Db.Prepare(sql)
 	if err != nil {
 		logger.Logger.Println(err.Error())
+		return hcc_errors.CelloSQLOperationFail, err.Error()
 	}
 	defer func() {
 		_ = stmt.Close()
@@ -233,7 +239,7 @@ func CreateVolume(in *model.Volume) (uint64, string) {
 	_, err = stmt.Exec(in.UUID, in.Size, in.Filesystem, in.ServerUUID, in.UseType, in.UserUUID, in.LunNum, in.Pool)
 	if err != nil {
 		errStr := "[volumeDao]Can't Update DB: " + err.Error()
-		return hccerr.CelloSQLOperationFail, errStr
+		return hcc_errors.CelloSQLOperationFail, errStr
 	}
 	return 0, ""
 }
@@ -248,7 +254,7 @@ func checkUpdateVolumeArgs(args map[string]interface{}) bool {
 }
 
 // UpdateVolume - cgs
-func UpdateVolume(args map[string]interface{}) (interface{}, error) {
+func UpdateVolume(args map[string]interface{}) (interface{}, uint64, string) {
 	var err error
 
 	requestedUUID, requestedUUIDOk := args["uuid"].(string)
@@ -268,7 +274,7 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 
 	if requestedUUIDOk {
 		if checkUpdateVolumeArgs(args) {
-			return nil, errors.New("need some arguments")
+			return nil, hcc_errors.CelloGrpcArgumentError, errors.New("need some arguments").Error()
 		}
 
 		sql := "update volume set"
@@ -293,7 +299,7 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
 			logger.Logger.Println(err.Error())
-			return nil, err
+			goto ERROR
 		}
 		defer func() {
 			_ = stmt.Close()
@@ -302,17 +308,19 @@ func UpdateVolume(args map[string]interface{}) (interface{}, error) {
 		result, err2 := stmt.Exec(volume.UUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)
-			return nil, err
+			goto ERROR
 		}
 		logger.Logger.Println(result.LastInsertId())
-		return volume, nil
+		return volume, 0, ""
+
 	}
 
-	return nil, err
+ERROR:
+	return nil, hcc_errors.CelloSQLOperationFail, err.Error()
 }
 
 // DeleteVolume - cgs
-func DeleteVolume(in *model.Volume) (uint64, error) {
+func DeleteVolume(in *model.Volume) (uint64, string) {
 	var err error
 
 	if in.UUID != "" {
@@ -320,7 +328,7 @@ func DeleteVolume(in *model.Volume) (uint64, error) {
 		stmt, err := mysql.Db.Prepare(sql)
 		if err != nil {
 			logger.Logger.Println(err.Error())
-			return hccerr.CelloSQLOperationFail, err
+			goto ERROR
 		}
 		defer func() {
 			_ = stmt.Close()
@@ -328,12 +336,12 @@ func DeleteVolume(in *model.Volume) (uint64, error) {
 		result, err2 := stmt.Exec(in.UUID)
 		if err2 != nil {
 			logger.Logger.Println(err2)
-			return hccerr.CelloSQLOperationFail, err
+			goto ERROR
 		}
 		logger.Logger.Println(result.RowsAffected())
 
-		return 0, nil
+		return 0, ""
 	}
-
-	return hccerr.CelloSQLOperationFail, err
+ERROR:
+	return hcc_errors.CelloSQLOperationFail, err.Error()
 }

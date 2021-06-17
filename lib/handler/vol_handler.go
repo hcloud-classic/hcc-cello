@@ -3,12 +3,14 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"hcc/cello/dao"
 	"hcc/cello/lib/config"
 	"hcc/cello/lib/formatter"
 	"hcc/cello/lib/logger"
 	"hcc/cello/model"
 	"math"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -105,6 +107,29 @@ func ReloadPoolObject() error {
 	}
 	return nil
 
+}
+func ReloadAllOfVolInfo() error {
+	var recvErr error
+	// var recvStr string
+	var ErrStr string
+	var ErrCode uint64
+	celloParams := make(map[string]interface{})
+	celloParams["row"] = 254
+	celloParams["page"] = 1
+	dbVol, ErrCode, ErrStr := dao.ReadVolumeAll(celloParams)
+	if recvErr != nil {
+		logger.Logger.Println("ReloadAllOfVolInfo(): Failed to read volumes", ErrCode, ErrStr)
+		return recvErr
+	}
+	formatter.GlobalVolumesDB = dbVol.([]model.Volume)
+	fmt.Println("ReloadAllOfVolInfo", formatter.GlobalVolumesDB)
+	sort.Slice(formatter.GlobalVolumesDB, func(i, j int) bool {
+		return formatter.GlobalVolumesDB[i].LunNum < formatter.GlobalVolumesDB[j].LunNum
+	})
+	PreLoad()
+	fmt.Println("ReloadAllOfVolInfo : \n", formatter.VolObjectMap.GetIscsiMap())
+
+	return nil
 }
 
 func findVolObejct(volume model.Volume) bool {
@@ -263,17 +288,17 @@ func clonezvol(volume model.Volume) (bool, interface{}) {
 	return true, result
 }
 
-func createzfs(volume model.Volume) (bool, interface{}) {
-	volname := formatter.VolNameBuilder(volume)
-	mountpath := "mountpoint=" + defaultdir + "/" + volname
-	cmd := exec.Command("zfs", "", "-o", mountpath, volname)
+// func createzfs(volume model.Volume) (bool, interface{}) {
+// 	volname := formatter.VolNameBuilder(volume)
+// 	mountpath := "mountpoint=" + defaultdir + "/" + volname
+// 	cmd := exec.Command("zfs", "", "-o", mountpath, volname)
 
-	result, err := cmd.CombinedOutput()
-	if err != nil {
-		return false, err
-	}
-	return true, result
-}
+// 	result, err := cmd.CombinedOutput()
+// 	if err != nil {
+// 		return false, err
+// 	}
+// 	return true, result
+// }
 
 //Deprecate
 // zfs set quota=20G refquota=20G master/UUID-TEST
