@@ -64,6 +64,7 @@ filesystem
 
 
 [Grpc]
+
 {
   "volume": {
     "size": "100G",
@@ -77,6 +78,7 @@ filesystem
   }
 }
 
+[Volhandle, delete]
 {
   "volume": {
     "size": "1G",
@@ -91,7 +93,7 @@ filesystem
   }
 }
 
-
+[Volhandle, create]
 {
   "volume": {
     "size": "1G",
@@ -104,6 +106,14 @@ filesystem
     "action": "create"
   }
 }
+
+[Get Pool List]
+{
+  "pool": {
+    "action": "read"
+  }
+}
+
 
 
 //// volume
