@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/hcloud-classic/hcc_errors"
 	gouuid "github.com/nu7hatch/gouuid"
 )
 
@@ -596,10 +597,11 @@ func GetVolumeList(contents *pb.ReqGetVolumeList) ([]*pb.Volume, *hccerr.HccErro
 	tempContents := contents.GetVolume()
 	// modelVolume.ServerUUID = contents
 	// retPbVolume := reformatPBReqtoPBVolume(contents)
-	var retPbVolumeList []*pb.Volume
-	logger.Logger.Println("Resolving: GetVolumeList ", tempContents.ServerUUID, tempContents.UUID)
-	if tempContents.ServerUUID == "" {
-		errStack.Push(&hccerr.HccError{ErrCode: hccerr.CelloGrpcArgumentError, ErrText: "Invalid UUID : { Server: " + contents.GetVolume().ServerUUID + "\n User : " + contents.GetVolume().UserUUID + "}"})
+	logger.Logger.Println("Resolving: GetVolumeList ", tempContents.ServerUUID)
+	if len(tempContents.ServerUUID) == 0 {
+		ErrStr += "GetVolume() : " + "Invalid UUID : { Server: " + "\n User : " + "}"
+		ErrCode = hcc_errors.CelloGrpcArgumentError
+		logger.Logger.Println(ErrStr)
 		goto ERROR
 	}
 	err = ReloadAllOfVolInfo()
