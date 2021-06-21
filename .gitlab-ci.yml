@@ -12,7 +12,7 @@ before_script:
     - export Branch_Name="$CI_COMMIT_REF_NAME"
     - export Serivce_Name="cello"
     - export Build_Path="/home/gitlab-runner/tmp_build"
-    - export GOOS="freebsd"
+
 
 copy_dir:
     stage: init
@@ -54,6 +54,7 @@ go_report:
 build:
   stage: build
   script:
+    - GOOS="freebsd"
     - make
     - if [[ ! -d "$Build_Path/$Serivce_Name/$Branch_Name" ]]; then mkdir -p $Build_Path/$Serivce_Name/$Branch_Name;fi
     - cp -f $PWD/$Serivce_Name $Build_Path/$Serivce_Name/$Branch_Name/
