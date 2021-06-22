@@ -1,37 +1,33 @@
 package main
 
 import (
-	"hcc/cello/action/graphql"
-	"hcc/cello/lib/config"
-	"hcc/cello/lib/logger"
-	"hcc/cello/lib/mysql"
-	"hcc/cello/lib/syscheck"
-	"net/http"
+	"hcc/cello/action/grpc/server"
+	celloEnd "hcc/cello/end"
+	celloInit "hcc/cello/init"
+
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-func main() {
-	if !syscheck.CheckRoot() {
-		return
-	}
-
-	if !logger.Prepare() {
-		return
-	}
-	defer logger.FpLog.Close()
-
-	err := mysql.Prepare()
+func init() {
+	err := celloInit.MainInit()
 	if err != nil {
 		panic(err)
 	}
-	defer mysql.Db.Close()
+}
 
-	http.Handle("/graphql", graphql.GraphqlHandler)
+func main() {
+	sigChan := make(chan os.Signal)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		celloEnd.MainEnd()
+		fmt.Println("Exiting violin module...")
+		os.Exit(0)
+	}()
 
-	logger.Logger.Println("Server is running on port " + config.HTTPPort)
-	err = http.ListenAndServe(":"+config.HTTPPort, nil)
-	if err != nil {
-		logger.Logger.Println(err)
-		logger.Logger.Println("Failed to prepare http server!")
-		return
-	}
+	server.Init()
+
 }

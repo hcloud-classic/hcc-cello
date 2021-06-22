@@ -2,6 +2,10 @@ package model
 
 import "time"
 
+// OSDiskSize : Disk size for OS use
+var OSDiskSize = 100
+
+// Volume - cgs
 type Volume struct {
 	UUID       string    `json:"uuid"`
 	Size       int       `json:"size"`
@@ -16,10 +20,12 @@ type Volume struct {
 	GatewayIP  string    `json:"gateway_ip"`
 }
 
+// Volumes - cgs
 type Volumes struct {
 	Volumes []Volume `json:"volume"`
 }
 
+// VolumeNum - cgs
 type VolumeNum struct {
 	Number int `json:"number"`
 }
